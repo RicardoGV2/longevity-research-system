@@ -1,0 +1,102 @@
+schema_id: daily_log_v0_1
+title: Daily Baseline Log
+version: 0.1
+language: es
+status: draft
+purpose: >
+  Capture daily signals during baseline: sleep, energy, stress, movement,
+  pain, physical load, and notable context.
+
+fields:
+  - id: DIA_001
+    question: "Fecha"
+    type: date
+    variable: fecha_registro_diario
+
+  - id: DIA_002
+    question: "Peso del dia, si aplica"
+    type: number
+    unit: kg
+    variable: peso_diario
+
+  - id: DIA_003
+    question: "Horas de sueno"
+    type: number
+    unit: hours
+    variable: horas_sueno_diario
+
+  - id: DIA_004
+    question: "Calidad de sueno"
+    type: scale
+    min: 1
+    max: 10
+    variable: calidad_sueno_diaria
+
+  - id: DIA_005
+    question: "Energia durante el dia"
+    type: scale
+    min: 1
+    max: 10
+    variable: energia_diaria
+
+  - id: DIA_006
+    question: "Estres del dia"
+    type: scale
+    min: 1
+    max: 10
+    variable: estres_diario
+
+  - id: DIA_007
+    question: "Pasos del dia"
+    type: number
+    unit: steps
+    variable: pasos_diarios
+
+  - id: DIA_008
+    question: "Carga fisica del dia"
+    type: multi_select
+    options:
+      - ninguna
+      - fuerza
+      - cardio_zona_2
+      - hiit
+      - caminata
+      - movilidad
+      - deporte
+      - trabajo_fisico
+      - otro
+    variable: carga_fisica_diaria
+
+  - id: DIA_009
+    question: "Dolor maximo del dia"
+    type: scale
+    min: 0
+    max: 10
+    variable: dolor_maximo_diario
+
+  - id: DIA_010
+    question: "Cafeina consumida"
+    type: single_select
+    options:
+      - ninguna
+      - 1_cafe_o_te
+      - 2_cafes_o_tes
+      - 3_o_mas
+      - variable
+    variable: cafeina_diaria_categoria
+
+  - id: DIA_011
+    question: "Alcohol consumido hoy"
+    type: single_select
+    options:
+      - no
+      - si_poco
+      - si_moderado
+      - si_alto
+      - prefiero_no_responder
+    variable: alcohol_diario_categoria
+
+  - id: DIA_012
+    question: "Notas importantes"
+    type: text_long
+    variable: notas_diarias
