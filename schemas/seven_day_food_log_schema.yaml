@@ -1,0 +1,119 @@
+schema_id: seven_day_food_log_v0_1
+title: Seven-Day Real Food Log
+version: 0.1
+language: es
+status: draft
+purpose: >
+  Capture real food intake for seven days without changing diet. The goal is not
+  judgment; it is pattern detection, timing, hunger, energy, digestion, context,
+  and candidate meals for experimentation.
+
+fields:
+  - id: REG7_001
+    question: "Dia del registro"
+    type: single_select
+    options:
+      - dia_1
+      - dia_2
+      - dia_3
+      - dia_4
+      - dia_5
+      - dia_6
+      - dia_7
+    variable: dia_registro_comida
+
+  - id: REG7_002
+    question: "Hora de la comida o bebida"
+    type: time
+    variable: hora_comida
+
+  - id: REG7_003
+    question: "Que comiste o tomaste?"
+    type: text_long
+    variable: descripcion_comida
+
+  - id: REG7_004
+    question: "Cantidad aproximada"
+    type: text_short
+    variable: cantidad_aproximada
+    examples:
+      - "1 plato"
+      - "2 piezas"
+      - "1 taza"
+      - "aprox. 150 g"
+
+  - id: REG7_005
+    question: "Donde comiste?"
+    type: single_select
+    options:
+      - casa
+      - trabajo_oficina
+      - restaurante
+      - delivery_takeaway
+      - social_familia_amigos
+      - transporte_calle
+      - otro
+    variable: lugar_comida
+
+  - id: REG7_006
+    question: "Hambre antes de comer"
+    type: scale
+    min: 1
+    max: 10
+    anchors:
+      1: "nada de hambre"
+      10: "hambre extrema"
+    variable: hambre_pre_comida
+
+  - id: REG7_007
+    question: "Energia 1 hora despues"
+    type: scale
+    min: 1
+    max: 10
+    anchors:
+      1: "muy baja"
+      10: "muy alta"
+    variable: energia_1h_post_comida
+
+  - id: REG7_008
+    question: "Hambre 2-3 horas despues"
+    type: scale
+    min: 1
+    max: 10
+    anchors:
+      1: "nada de hambre"
+      10: "hambre extrema"
+    variable: hambre_2_3h_post_comida
+
+  - id: REG7_009
+    question: "Digestion despues de la comida"
+    type: multi_select
+    options:
+      - normal
+      - pesadez
+      - inflamacion
+      - gases
+      - reflujo
+      - dolor_abdominal
+      - nausea
+      - diarrea
+      - estrenimiento
+      - no_se
+    variable: sintomas_digestivos_post_comida
+
+  - id: REG7_010
+    question: "Contexto de esa comida"
+    type: multi_select
+    options:
+      - mucho_estres
+      - prisa
+      - despues_de_entrenar
+      - antes_de_entrenar
+      - mala_noche_previa
+      - alcohol_ese_dia
+      - mucho_cafe
+      - comida_social
+      - comi_por_ansiedad
+      - normal_sin_contexto_especial
+      - otro
+    variable: contexto_comida
