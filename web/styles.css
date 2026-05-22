@@ -61,7 +61,8 @@ h1 {
   max-width: 720px;
 }
 
-.header-actions {
+.header-actions,
+.inline-actions {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
@@ -85,6 +86,12 @@ button.secondary,
   background: rgba(255, 255, 255, 0.14);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+button.secondary-dark {
+  background: #edf2ff;
+  color: #1d4ed8;
+  border: 1px solid #c8d8ff;
 }
 
 button.danger {
@@ -245,6 +252,88 @@ main {
   justify-self: start;
 }
 
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.section-head h2 {
+  margin-bottom: 6px;
+}
+
+.section-head p,
+.muted {
+  color: var(--muted);
+  margin-top: 0;
+}
+
+.editor-label {
+  color: var(--muted);
+  font-weight: 700;
+  display: block;
+  margin: 14px 0 8px;
+}
+
+.plan-editor {
+  width: 100%;
+  min-height: 420px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px;
+  font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  color: var(--ink);
+  background: #fbfcff;
+}
+
+.markdown-preview {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fbfcff;
+  padding: 16px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3 {
+  line-height: 1.15;
+}
+
+.markdown-preview code {
+  background: #eef2ff;
+  padding: 2px 5px;
+  border-radius: 6px;
+}
+
+.markdown-preview ul,
+.markdown-preview ol {
+  padding-left: 24px;
+}
+
+.sync-box {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 16px;
+  background: #fbfcff;
+  margin-bottom: 22px;
+}
+
+.sync-actions {
+  justify-content: flex-start;
+  margin-top: 12px;
+}
+
+.sync-status {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-weight: 650;
+}
+
 pre {
   background: #0f172a;
   color: #e2e8f0;
@@ -262,11 +351,13 @@ footer {
 }
 
 @media (max-width: 780px) {
-  .app-header {
+  .app-header,
+  .section-head {
     flex-direction: column;
   }
 
-  .header-actions {
+  .header-actions,
+  .inline-actions {
     justify-content: flex-start;
   }
 
@@ -294,21 +385,30 @@ footer {
 
   .card,
   .chart-card,
-  .notice {
+  .notice,
+  .sync-box,
+  .markdown-preview,
+  .plan-editor {
     border-radius: 18px;
   }
 
-  .header-actions {
+  .header-actions,
+  .inline-actions {
     width: 100%;
   }
 
   .header-actions button,
-  .header-actions .file-label {
+  .header-actions .file-label,
+  .inline-actions button {
     flex: 1 1 auto;
     text-align: center;
   }
 
   .header-actions .danger {
     flex-basis: 100%;
+  }
+
+  .plan-editor {
+    min-height: 360px;
   }
 }
