@@ -1,13 +1,17 @@
 const STORAGE_KEY = "longevityResearchSystem.v0.1";
+const SYNC_SETTINGS_KEY = "longevityResearchSystem.syncSettings.v0.1";
+const SEED_PLAN_PATH = "plans/longevity_base.md";
 
 const emptyState = {
   dailyLogs: [],
   foodLogs: [],
   measurements: [],
-  recipeExperiments: []
+  recipeExperiments: [],
+  planMarkdown: ""
 };
 
 let state = loadState();
+let syncSettings = loadSyncSettings();
 
 function loadState() {
   try {
@@ -22,6 +26,31 @@ function loadState() {
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   render();
+}
+
+function loadSyncSettings() {
+  try {
+    const raw = localStorage.getItem(SYNC_SETTINGS_KEY);
+    return raw ? JSON.parse(raw) : {
+      token: "",
+      owner: "RicardoGV2",
+      repo: "longevity-research-system",
+      branch: "main",
+      path: "sync/personal-sync.json"
+    };
+  } catch (error) {
+    return {
+      token: "",
+      owner: "RicardoGV2",
+      repo: "longevity-research-system",
+      branch: "main",
+      path: "sync/personal-sync.json"
+    };
+  }
+}
+
+function saveSyncSettings() {
+  localStorage.setItem(SYNC_SETTINGS_KEY, JSON.stringify(syncSettings));
 }
 
 function parseNumber(value) {
@@ -154,6 +183,7 @@ function setupImportExport() {
       const imported = JSON.parse(await file.text());
       state = { ...emptyState, ...imported };
       saveState();
+      syncPlanEditorFromState();
       event.target.value = "";
       alert("Data imported successfully.");
     } catch (error) {
@@ -162,11 +192,265 @@ function setupImportExport() {
   });
 
   document.getElementById("clearBtn").addEventListener("click", () => {
-    const ok = confirm("Clear all local data in this browser? Export first if you want a backup.");
+    const ok = confirm("Clear all local data in this browser? Export or push to GitHub first if you want a backup.");
     if (!ok) return;
     state = { ...emptyState };
     saveState();
+    syncPlanEditorFromState();
   });
+}
+
+async function initializePlan() {
+  if (state.planMarkdown && state.planMarkdown.trim()) {
+    syncPlanEditorFromState();
+    return;
+  }
+  await loadSeedPlan(false);
+}
+
+async function loadSeedPlan(confirmOverwrite = true) {
+  if (confirmOverwrite && state.planMarkdown && !confirm("Reload the seed plan? This will replace the local plan text unless you pushed/exported it.")) {
+    return;
+  }
+  try {
+    const response = await fetch(`${SEED_PLAN_PATH}?v=${Date.now()}`);
+    if (!response.ok) throw new Error(`Seed plan fetch failed: ${response.status}`);
+    state.planMarkdown = await response.text();
+    saveState();
+    syncPlanEditorFromState();
+  } catch (error) {
+    console.error(error);
+    setSyncStatus("Could not load seed plan. Check that web/plans/longevity_base.md exists.", true);
+  }
+}
+
+function setupPlanEditor() {
+  const editor = document.getElementById("planEditor");
+  const saveBtn = document.getElementById("savePlanBtn");
+  const seedBtn = document.getElementById("loadSeedPlanBtn");
+  if (!editor || !saveBtn || !seedBtn) return;
+
+  editor.addEventListener("input", () => {
+    renderMarkdownPreview(editor.value);
+  });
+
+  saveBtn.addEventListener("click", () => {
+    state.planMarkdown = editor.value;
+    saveState();
+    setSyncStatus("Plan saved locally. Push to GitHub to update other devices.");
+  });
+
+  seedBtn.addEventListener("click", () => loadSeedPlan(true));
+}
+
+function syncPlanEditorFromState() {
+  const editor = document.getElementById("planEditor");
+  if (!editor) return;
+  editor.value = state.planMarkdown || "";
+  renderMarkdownPreview(editor.value);
+}
+
+function escapeHtml(input) {
+  return String(input)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function renderMarkdownPreview(markdown) {
+  const preview = document.getElementById("planPreview");
+  if (!preview) return;
+  const lines = String(markdown || "").split("\n");
+  let html = "";
+  let inList = false;
+
+  function closeList() {
+    if (inList) {
+      html += "</ul>";
+      inList = false;
+    }
+  }
+
+  for (const rawLine of lines) {
+    const line = rawLine.trimEnd();
+    if (!line.trim()) {
+      closeList();
+      continue;
+    }
+    if (line.startsWith("### ")) {
+      closeList();
+      html += `<h3>${escapeHtml(line.slice(4))}</h3>`;
+    } else if (line.startsWith("## ")) {
+      closeList();
+      html += `<h2>${escapeHtml(line.slice(3))}</h2>`;
+    } else if (line.startsWith("# ")) {
+      closeList();
+      html += `<h1>${escapeHtml(line.slice(2))}</h1>`;
+    } else if (line.startsWith("- ")) {
+      if (!inList) {
+        html += "<ul>";
+        inList = true;
+      }
+      html += `<li>${inlineMarkdown(escapeHtml(line.slice(2)))}</li>`;
+    } else if (/^\d+\.\s/.test(line)) {
+      closeList();
+      html += `<p>${inlineMarkdown(escapeHtml(line))}</p>`;
+    } else if (line === "---") {
+      closeList();
+      html += "<hr>";
+    } else {
+      closeList();
+      html += `<p>${inlineMarkdown(escapeHtml(line))}</p>`;
+    }
+  }
+  closeList();
+  preview.innerHTML = html || "<p>No plan content yet.</p>";
+}
+
+function inlineMarkdown(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+}
+
+function setupSyncSettings() {
+  const form = document.getElementById("syncSettingsForm");
+  if (!form) return;
+  form.token.value = syncSettings.token || "";
+  form.owner.value = syncSettings.owner || "RicardoGV2";
+  form.repo.value = syncSettings.repo || "longevity-research-system";
+  form.branch.value = syncSettings.branch || "main";
+  form.path.value = syncSettings.path || "sync/personal-sync.json";
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const data = getFormData(form);
+    syncSettings = {
+      token: data.token.trim(),
+      owner: data.owner.trim(),
+      repo: data.repo.trim(),
+      branch: data.branch.trim() || "main",
+      path: data.path.trim() || "sync/personal-sync.json"
+    };
+    saveSyncSettings();
+    setSyncStatus("Sync settings saved locally on this device.");
+  });
+
+  document.getElementById("pullGithubBtn")?.addEventListener("click", pullFromGitHub);
+  document.getElementById("pushGithubBtn")?.addEventListener("click", pushToGitHub);
+}
+
+function setSyncStatus(message, isError = false) {
+  const el = document.getElementById("syncStatus");
+  if (!el) return;
+  el.textContent = message;
+  el.style.color = isError ? "#b91c1c" : "#647084";
+}
+
+function validateSyncSettings() {
+  if (!syncSettings.token || !syncSettings.owner || !syncSettings.repo || !syncSettings.path) {
+    throw new Error("Missing GitHub sync settings. Add token, owner, repo, branch and file path.");
+  }
+}
+
+function githubFileUrl() {
+  const encodedPath = syncSettings.path.split("/").map(encodeURIComponent).join("/");
+  return `https://api.github.com/repos/${encodeURIComponent(syncSettings.owner)}/${encodeURIComponent(syncSettings.repo)}/contents/${encodedPath}`;
+}
+
+function authHeaders() {
+  return {
+    "Accept": "application/vnd.github+json",
+    "Authorization": `Bearer ${syncSettings.token}`,
+    "X-GitHub-Api-Version": "2022-11-28"
+  };
+}
+
+function encodeBase64Unicode(str) {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+
+function decodeBase64Unicode(str) {
+  return decodeURIComponent(escape(atob(str.replace(/\n/g, ""))));
+}
+
+function buildSyncPayload() {
+  return {
+    schemaVersion: "0.1",
+    updatedAt: new Date().toISOString(),
+    appState: state
+  };
+}
+
+async function getGitHubFileMetadata() {
+  const url = `${githubFileUrl()}?ref=${encodeURIComponent(syncSettings.branch || "main")}`;
+  const response = await fetch(url, { headers: authHeaders() });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`GitHub fetch failed: ${response.status} ${text}`);
+  }
+  return response.json();
+}
+
+async function pullFromGitHub() {
+  try {
+    validateSyncSettings();
+    setSyncStatus("Pulling from GitHub...");
+    const metadata = await getGitHubFileMetadata();
+    if (!metadata) {
+      setSyncStatus("No sync file found yet. Push from one device first.", true);
+      return;
+    }
+    const payload = JSON.parse(decodeBase64Unicode(metadata.content));
+    if (!payload.appState) throw new Error("Sync file does not contain appState.");
+    state = { ...emptyState, ...payload.appState };
+    saveState();
+    syncPlanEditorFromState();
+    setSyncStatus(`Pulled from GitHub. Last remote update: ${payload.updatedAt || "unknown"}`);
+  } catch (error) {
+    console.error(error);
+    setSyncStatus(error.message, true);
+  }
+}
+
+async function pushToGitHub() {
+  try {
+    validateSyncSettings();
+    const editor = document.getElementById("planEditor");
+    if (editor) state.planMarkdown = editor.value;
+    saveState();
+    setSyncStatus("Pushing to GitHub...");
+
+    const metadata = await getGitHubFileMetadata();
+    const payload = buildSyncPayload();
+    const body = {
+      message: `Sync longevity app data ${new Date().toISOString()}`,
+      content: encodeBase64Unicode(JSON.stringify(payload, null, 2)),
+      branch: syncSettings.branch || "main"
+    };
+    if (metadata?.sha) body.sha = metadata.sha;
+
+    const response = await fetch(githubFileUrl(), {
+      method: "PUT",
+      headers: {
+        ...authHeaders(),
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`GitHub push failed: ${response.status} ${text}`);
+    }
+    setSyncStatus("Pushed to GitHub. Other devices can now Pull from GitHub.");
+  } catch (error) {
+    console.error(error);
+    setSyncStatus(error.message, true);
+  }
 }
 
 function sortByDate(items) {
@@ -326,4 +610,6 @@ window.addEventListener("orientationchange", () => setTimeout(render, 250));
 setupTabs();
 setupForms();
 setupImportExport();
-requestAnimationFrame(render);
+setupPlanEditor();
+setupSyncSettings();
+initializePlan().then(() => requestAnimationFrame(render));
