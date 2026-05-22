@@ -7,6 +7,8 @@ const emptyState = {
   recipeExperiments: []
 };
 
+let state = loadState();
+
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -22,8 +24,6 @@ function saveState() {
   render();
 }
 
-let state = loadState();
-
 function parseNumber(value) {
   if (value === "" || value === null || value === undefined) return null;
   const n = Number(value);
@@ -31,8 +31,7 @@ function parseNumber(value) {
 }
 
 function getFormData(form) {
-  const data = new FormData(form);
-  return Object.fromEntries(data.entries());
+  return Object.fromEntries(new FormData(form).entries());
 }
 
 function addTimestamp(record) {
@@ -50,7 +49,7 @@ function setupTabs() {
       document.querySelectorAll(".panel").forEach((panel) => panel.classList.remove("active"));
       button.classList.add("active");
       document.getElementById(button.dataset.tab).classList.add("active");
-      render();
+      requestAnimationFrame(render);
     });
   });
 }
@@ -152,8 +151,7 @@ function setupImportExport() {
     const file = event.target.files[0];
     if (!file) return;
     try {
-      const text = await file.text();
-      const imported = JSON.parse(text);
+      const imported = JSON.parse(await file.text());
       state = { ...emptyState, ...imported };
       saveState();
       event.target.value = "";
@@ -175,27 +173,42 @@ function sortByDate(items) {
   return [...items].sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
 }
 
+function prepareCanvas(canvas, preferredHeight = 180) {
+  const card = canvas.closest(".chart-card") || canvas.parentElement || canvas;
+  const ratio = Math.min(window.devicePixelRatio || 1, 2);
+  const cardStyle = getComputedStyle(card);
+  const paddingX = parseFloat(cardStyle.paddingLeft || 0) + parseFloat(cardStyle.paddingRight || 0);
+  const safeViewportWidth = Math.max(260, window.innerWidth - 36);
+  const cardWidth = Math.max(260, Math.floor(card.clientWidth - paddingX));
+  const cssWidth = Math.min(cardWidth, safeViewportWidth);
+  const cssHeight = preferredHeight;
+
+  canvas.style.width = `${cssWidth}px`;
+  canvas.style.maxWidth = "100%";
+  canvas.style.height = `${cssHeight}px`;
+  canvas.width = Math.floor(cssWidth * ratio);
+  canvas.height = Math.floor(cssHeight * ratio);
+
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  ctx.clearRect(0, 0, cssWidth, cssHeight);
+  return { ctx, width: cssWidth, height: cssHeight };
+}
+
+function drawEmpty(ctx, text = "No data yet") {
+  ctx.fillStyle = "#647084";
+  ctx.font = "14px system-ui";
+  ctx.fillText(text, 18, 34);
+}
+
 function drawLineChart(canvasId, points, options = {}) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  const rect = canvas.getBoundingClientRect();
-  const ratio = window.devicePixelRatio || 1;
-  canvas.width = rect.width * ratio;
-  canvas.height = canvas.height || 180;
-  const cssHeight = Number(canvas.getAttribute("height")) || 180;
-  canvas.height = cssHeight * ratio;
-  ctx.scale(ratio, ratio);
+  const { ctx, width, height } = prepareCanvas(canvas, 180);
 
-  const width = rect.width;
-  const height = cssHeight;
-  ctx.clearRect(0, 0, width, height);
-
-  const valid = points.filter((p) => p.value !== null && p.value !== undefined && Number.isFinite(p.value));
-  if (valid.length === 0) {
-    ctx.fillStyle = "#647084";
-    ctx.font = "14px system-ui";
-    ctx.fillText("No data yet", 18, 34);
+  const valid = points.filter((p) => Number.isFinite(p.value));
+  if (!valid.length) {
+    drawEmpty(ctx);
     return;
   }
 
@@ -216,21 +229,15 @@ function drawLineChart(canvasId, points, options = {}) {
   ctx.lineTo(width - pad, height - pad);
   ctx.stroke();
 
-  function x(i) {
-    return valid.length === 1 ? width / 2 : pad + (i * (width - pad * 2)) / (valid.length - 1);
-  }
-  function y(v) {
-    return height - pad - ((v - min) * (height - pad * 2)) / (max - min);
-  }
+  const x = (i) => valid.length === 1 ? width / 2 : pad + (i * (width - pad * 2)) / (valid.length - 1);
+  const y = (v) => height - pad - ((v - min) * (height - pad * 2)) / (max - min);
 
   ctx.strokeStyle = options.color || "#2563eb";
   ctx.lineWidth = 2.5;
   ctx.beginPath();
   valid.forEach((p, i) => {
-    const px = x(i);
-    const py = y(p.value);
-    if (i === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
+    if (i === 0) ctx.moveTo(x(i), y(p.value));
+    else ctx.lineTo(x(i), y(p.value));
   });
   ctx.stroke();
 
@@ -250,22 +257,12 @@ function drawLineChart(canvasId, points, options = {}) {
 function drawDualChart(canvasId, seriesA, seriesB) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  const rect = canvas.getBoundingClientRect();
-  const ratio = window.devicePixelRatio || 1;
-  const cssHeight = Number(canvas.getAttribute("height")) || 180;
-  canvas.width = rect.width * ratio;
-  canvas.height = cssHeight * ratio;
-  ctx.scale(ratio, ratio);
-  ctx.clearRect(0, 0, rect.width, cssHeight);
+  const { ctx, width, height } = prepareCanvas(canvas, 180);
 
   const a = seriesA.filter((p) => Number.isFinite(p.value));
   const b = seriesB.filter((p) => Number.isFinite(p.value));
-  const all = [...a, ...b];
-  if (!all.length) {
-    ctx.fillStyle = "#647084";
-    ctx.font = "14px system-ui";
-    ctx.fillText("No data yet", 18, 34);
+  if (![...a, ...b].length) {
+    drawEmpty(ctx);
     return;
   }
 
@@ -273,14 +270,14 @@ function drawDualChart(canvasId, seriesA, seriesB) {
   const min = 1;
   const max = 10;
   const len = Math.max(a.length, b.length, 1);
-  const x = (i) => len === 1 ? rect.width / 2 : pad + (i * (rect.width - pad * 2)) / (len - 1);
-  const y = (v) => cssHeight - pad - ((v - min) * (cssHeight - pad * 2)) / (max - min);
+  const x = (i) => len === 1 ? width / 2 : pad + (i * (width - pad * 2)) / (len - 1);
+  const y = (v) => height - pad - ((v - min) * (height - pad * 2)) / (max - min);
 
   ctx.strokeStyle = "#dfe4ee";
   ctx.beginPath();
   ctx.moveTo(pad, pad);
-  ctx.lineTo(pad, cssHeight - pad);
-  ctx.lineTo(rect.width - pad, cssHeight - pad);
+  ctx.lineTo(pad, height - pad);
+  ctx.lineTo(width - pad, height - pad);
   ctx.stroke();
 
   function draw(series, color) {
@@ -288,7 +285,6 @@ function drawDualChart(canvasId, seriesA, seriesB) {
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     series.forEach((p, i) => {
-      if (!Number.isFinite(p.value)) return;
       if (i === 0) ctx.moveTo(x(i), y(p.value));
       else ctx.lineTo(x(i), y(p.value));
     });
@@ -297,6 +293,7 @@ function drawDualChart(canvasId, seriesA, seriesB) {
 
   draw(a, "#2563eb");
   draw(b, "#b91c1c");
+  ctx.font = "12px system-ui";
   ctx.fillStyle = "#2563eb";
   ctx.fillText("Energy", pad, 16);
   ctx.fillStyle = "#b91c1c";
@@ -323,9 +320,10 @@ function render() {
   if (raw) raw.textContent = JSON.stringify(state, null, 2);
 }
 
-window.addEventListener("resize", render);
+window.addEventListener("resize", () => requestAnimationFrame(render));
+window.addEventListener("orientationchange", () => setTimeout(render, 250));
 
 setupTabs();
 setupForms();
 setupImportExport();
-render();
+requestAnimationFrame(render);
