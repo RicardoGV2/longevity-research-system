@@ -4,14 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Longevity Research System</title>
-  <link rel="stylesheet" href="styles.css?v=4" />
+  <link rel="stylesheet" href="styles.css?v=5" />
 </head>
 <body>
   <header class="app-header">
     <div>
       <p class="eyebrow">Personal MVP</p>
       <h1>Longevity Research System</h1>
-      <p class="subtitle">Baseline, daily logs, food experiments, measurements, and local charts.</p>
+      <p class="subtitle">Baseline, daily logs, food experiments, measurements, plans, and local charts.</p>
     </div>
     <div class="header-actions">
       <button id="exportBtn" class="secondary">Export JSON</button>
@@ -25,16 +25,17 @@
 
   <main>
     <section class="notice">
-      <strong>Storage:</strong> this MVP stores data only in this browser using localStorage. Use Export JSON to back up or move data between devices.
+      <strong>Storage:</strong> this MVP stores data in this browser. Use Export/Import for manual backups or GitHub Sync to update between devices.
     </section>
 
     <nav class="tabs" aria-label="Main sections">
       <button class="tab active" data-tab="dashboard">Dashboard</button>
+      <button class="tab" data-tab="plan">Plan</button>
       <button class="tab" data-tab="daily">Daily Log</button>
       <button class="tab" data-tab="food">7-Day Food Log</button>
       <button class="tab" data-tab="measurements">Measurements</button>
       <button class="tab" data-tab="recipe">Recipe Experiment</button>
-      <button class="tab" data-tab="data">Data</button>
+      <button class="tab" data-tab="data">Data & Sync</button>
     </nav>
 
     <section id="dashboard" class="panel active">
@@ -63,6 +64,23 @@
           <canvas id="painChart" height="180"></canvas>
         </article>
       </div>
+    </section>
+
+    <section id="plan" class="panel">
+      <div class="section-head">
+        <div>
+          <h2>Plan files</h2>
+          <p>Edit the plan in Markdown. Save locally first, then push/pull with GitHub Sync from the Data & Sync tab.</p>
+        </div>
+        <div class="inline-actions">
+          <button id="loadSeedPlanBtn" class="secondary-dark" type="button">Reload seed</button>
+          <button id="savePlanBtn" type="button">Save plan locally</button>
+        </div>
+      </div>
+      <label class="editor-label">Current plan Markdown</label>
+      <textarea id="planEditor" class="plan-editor" spellcheck="false"></textarea>
+      <h3>Preview</h3>
+      <article id="planPreview" class="markdown-preview"></article>
     </section>
 
     <section id="daily" class="panel">
@@ -183,16 +201,35 @@
     </section>
 
     <section id="data" class="panel">
-      <h2>Stored data</h2>
+      <h2>Data & GitHub Sync</h2>
+      <section class="sync-box">
+        <h3>GitHub sync settings</h3>
+        <p class="muted">For personal use only. Use a fine-grained token with Contents read/write permission. A second private data repo is safer for real health data.</p>
+        <form id="syncSettingsForm" class="form-grid">
+          <label>GitHub token <input name="token" type="password" autocomplete="off" placeholder="ghp_... or github_pat_..." /></label>
+          <label>Owner <input name="owner" type="text" value="RicardoGV2" /></label>
+          <label>Repo <input name="repo" type="text" value="longevity-research-system" /></label>
+          <label>Branch <input name="branch" type="text" value="main" /></label>
+          <label class="full">Sync file path <input name="path" type="text" value="sync/personal-sync.json" /></label>
+          <button type="submit">Save sync settings locally</button>
+        </form>
+        <div class="inline-actions sync-actions">
+          <button id="pullGithubBtn" class="secondary-dark" type="button">Pull from GitHub</button>
+          <button id="pushGithubBtn" type="button">Push to GitHub</button>
+        </div>
+        <p id="syncStatus" class="sync-status">Not synced yet.</p>
+      </section>
+
+      <h3>Raw local data</h3>
       <p>This is the raw local data currently stored in this browser.</p>
       <pre id="rawData"></pre>
     </section>
   </main>
 
   <footer>
-    <p>Research MVP. Not medical advice. Data is stored locally unless exported.</p>
+    <p>Research MVP. Not medical advice. Data is stored locally unless exported or synced by you.</p>
   </footer>
 
-  <script src="app.js?v=4"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>
