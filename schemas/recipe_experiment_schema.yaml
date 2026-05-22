@@ -1,0 +1,128 @@
+schema_id: recipe_experiment_v0_1
+title: Recipe Experiment Schema
+version: 0.1
+language: es
+status: draft
+purpose: >
+  Analyze recipes as physiological experiments. A recipe is not judged as good or bad
+  in isolation; it is evaluated by ingredients, amount, timing, order, combination,
+  and observed response.
+
+fields:
+  - id: REC_001
+    question: "Nombre de la receta"
+    type: text_short
+    variable: recipe_name
+
+  - id: REC_002
+    question: "Funcion fisiologica esperada"
+    type: multi_select
+    options:
+      - energia_estable
+      - saciedad
+      - recuperacion
+      - control_glucemico
+      - cena_ligera
+      - pre_entreno
+      - post_entreno
+      - salud_digestiva
+      - reduccion_antojos
+      - otra
+    variable: expected_physiological_function
+
+  - id: REC_003
+    question: "Ingredientes"
+    type: text_long
+    variable: ingredients
+
+  - id: REC_004
+    question: "Cantidades aproximadas"
+    type: text_long
+    variable: approximate_quantities
+
+  - id: REC_005
+    question: "Proteina aproximada"
+    type: number
+    unit: grams
+    variable: protein_g
+
+  - id: REC_006
+    question: "Carbohidratos aproximados"
+    type: number
+    unit: grams
+    variable: carbs_g
+
+  - id: REC_007
+    question: "Fibra aproximada"
+    type: number
+    unit: grams
+    variable: fiber_g
+
+  - id: REC_008
+    question: "Azucar anadida o libre"
+    type: number
+    unit: grams
+    variable: free_added_sugar_g
+
+  - id: REC_009
+    question: "Grasa aproximada"
+    type: number
+    unit: grams
+    variable: fat_g
+
+  - id: REC_010
+    question: "Horario propuesto"
+    type: multi_select
+    options:
+      - desayuno
+      - comida
+      - cena
+      - pre_entreno
+      - post_entreno
+      - snack
+      - no_definido
+    variable: proposed_timing
+
+  - id: REC_011
+    question: "Orden de consumo propuesto"
+    type: single_select
+    options:
+      - mezclado
+      - verduras_primero
+      - proteina_primero
+      - carbohidratos_al_final
+      - no_aplica
+      - no_definido
+    variable: proposed_food_order
+
+  - id: REC_012
+    question: "Metricas a observar"
+    type: multi_select
+    options:
+      - energia_1h
+      - hambre_2_3h
+      - digestion
+      - sueno
+      - rendimiento_entrenamiento
+      - glucosa_si_se_mide
+      - antojos
+      - otro
+    variable: metrics_to_observe
+
+  - id: REC_013
+    question: "Resultado observado"
+    type: text_long
+    variable: observed_result
+
+  - id: REC_014
+    question: "Decision sobre la receta"
+    type: single_select
+    options:
+      - mantener
+      - modificar_ingredientes
+      - cambiar_horario
+      - cambiar_orden
+      - repetir_experimento
+      - descartar
+      - pendiente
+    variable: recipe_decision
