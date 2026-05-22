@@ -1,0 +1,44 @@
+[
+  {
+    "id": "RQ_001",
+    "topic": "Blueprint",
+    "question": "What does Blueprint measure and which parts are applicable as methodology rather than protocol?",
+    "status": "pending"
+  },
+  {
+    "id": "RQ_002",
+    "topic": "Sugar",
+    "question": "How do added sugar, free sugar, and whole-food carbohydrates differ in metabolic impact?",
+    "status": "pending"
+  },
+  {
+    "id": "RQ_003",
+    "topic": "Food order",
+    "question": "Does eating vegetables or protein before carbohydrates reduce postprandial glucose response?",
+    "status": "pending"
+  },
+  {
+    "id": "RQ_004",
+    "topic": "Post-meal walking",
+    "question": "How much walking after meals is enough to improve glucose response?",
+    "status": "pending"
+  },
+  {
+    "id": "RQ_005",
+    "topic": "VO2 max",
+    "question": "What is the relationship between VO2 max and longevity or functional healthspan?",
+    "status": "pending"
+  },
+  {
+    "id": "RQ_006",
+    "topic": "Strength",
+    "question": "What strength metrics are most predictive of functional longevity?",
+    "status": "pending"
+  },
+  {
+    "id": "RQ_007",
+    "topic": "Ireland",
+    "question": "How should vitamin D, winter light, humidity, and indoor environment be handled in Ireland?",
+    "status": "pending"
+  }
+]
