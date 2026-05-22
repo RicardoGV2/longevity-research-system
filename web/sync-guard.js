@@ -5,6 +5,10 @@ const APP_STATE_STORAGE_KEY = "longevityResearchSystem.v0.1";
 const SYNC_META_STORAGE_KEY = "longevityResearchSystem.syncMeta.v0.1";
 const PLAN_DRAFT_STORAGE_KEY = "longevityResearchSystem.planDraft.v0.1";
 
+let autoPushTimer = null;
+let planAutoSaveTimer = null;
+let autoPushInFlight = false;
+
 function readJsonFromStorage(key, fallback = {}) {
   try {
     return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
@@ -104,7 +108,8 @@ function applyPrivateDataDefaults() {
       repo: PRIVATE_DATA_REPO,
       branch: stored.branch || "main",
       path: stored.path || "sync/personal-sync.json",
-      autoPullOnRefresh: stored.autoPullOnRefresh ?? true
+      autoPullOnRefresh: stored.autoPullOnRefresh ?? true,
+      autoPushAfterChanges: stored.autoPushAfterChanges ?? true
     };
     writeSyncSettingsToStorage(updated);
     if (form.owner) form.owner.value = updated.owner;
@@ -114,22 +119,37 @@ function applyPrivateDataDefaults() {
   }
 }
 
-function installAutoPullCheckbox() {
+function installSyncBehaviorControls() {
   const form = document.getElementById("syncSettingsForm");
   if (!form || document.getElementById("autoPullOnRefresh")) return;
 
   const settings = readSyncSettingsFromStorage();
-  const label = document.createElement("label");
-  label.className = "full";
-  label.innerHTML = `Auto pull on refresh <select name="autoPullOnRefresh" id="autoPullOnRefresh"><option value="yes">Yes, if there are no unsynced local changes</option><option value="no">No, manual pull only</option></select>`;
+  const wrapper = document.createElement("div");
+  wrapper.className = "full";
+  wrapper.innerHTML = `
+    <label>Auto pull on refresh
+      <select name="autoPullOnRefresh" id="autoPullOnRefresh">
+        <option value="yes">Yes, if there are no unsynced local changes</option>
+        <option value="no">No, manual pull only</option>
+      </select>
+    </label>
+    <label>Auto push after saved changes
+      <select name="autoPushAfterChanges" id="autoPushAfterChanges">
+        <option value="yes">Yes, after a short delay</option>
+        <option value="no">No, manual push only</option>
+      </select>
+    </label>
+  `;
   const button = form.querySelector("button[type='submit']");
-  form.insertBefore(label, button);
-  label.querySelector("select").value = settings.autoPullOnRefresh === false ? "no" : "yes";
+  form.insertBefore(wrapper, button);
+  wrapper.querySelector("#autoPullOnRefresh").value = settings.autoPullOnRefresh === false ? "no" : "yes";
+  wrapper.querySelector("#autoPushAfterChanges").value = settings.autoPushAfterChanges === false ? "no" : "yes";
 
   form.addEventListener("submit", () => {
     window.setTimeout(() => {
       const updated = readSyncSettingsFromStorage();
-      updated.autoPullOnRefresh = label.querySelector("select").value === "yes";
+      updated.autoPullOnRefresh = wrapper.querySelector("#autoPullOnRefresh").value === "yes";
+      updated.autoPushAfterChanges = wrapper.querySelector("#autoPushAfterChanges").value === "yes";
       writeSyncSettingsToStorage(updated);
     }, 0);
   });
@@ -158,20 +178,76 @@ function installPublicRepoPushGuard() {
   }, true);
 }
 
+function canAutoPush(settings) {
+  return Boolean(
+    settings.autoPushAfterChanges !== false &&
+    settings.token &&
+    settings.owner &&
+    settings.repo &&
+    settings.branch &&
+    settings.path &&
+    settings.repo !== PUBLIC_SYSTEM_REPO &&
+    typeof pushToGitHub === "function"
+  );
+}
+
+function scheduleAutoPush(reason = "local change", delayMs = 3500) {
+  const settings = readSyncSettingsFromStorage();
+  if (!canAutoPush(settings)) return;
+
+  window.clearTimeout(autoPushTimer);
+  setStatus(`Auto push scheduled after: ${reason}`);
+  autoPushTimer = window.setTimeout(async () => {
+    if (autoPushInFlight) {
+      scheduleAutoPush("previous push still running", 2500);
+      return;
+    }
+
+    autoPushInFlight = true;
+    try {
+      setStatus("Auto pushing latest changes to private GitHub repo...");
+      await pushToGitHub();
+      markCleanAfterPush();
+      localStorage.removeItem(PLAN_DRAFT_STORAGE_KEY);
+      setStatus("Auto push complete. Other devices can pull or auto-pull on refresh.");
+    } catch (error) {
+      console.error(error);
+      setStatus(`Auto push failed: ${error.message}`, true);
+    } finally {
+      autoPushInFlight = false;
+    }
+  }, delayMs);
+}
+
 function installLocalChangeTracking() {
   const trackedForms = ["dailyForm", "foodForm", "measurementForm", "recipeForm"];
   trackedForms.forEach((id) => {
-    document.getElementById(id)?.addEventListener("submit", () => markUnsyncedLocalChange(id), true);
+    document.getElementById(id)?.addEventListener("submit", () => {
+      markUnsyncedLocalChange(id);
+      scheduleAutoPush(id, 4000);
+    }, true);
   });
 
   document.getElementById("savePlanBtn")?.addEventListener("click", () => {
     localStorage.removeItem(PLAN_DRAFT_STORAGE_KEY);
     markUnsyncedLocalChange("plan saved locally");
+    scheduleAutoPush("plan saved locally", 4000);
   }, true);
 
-  document.getElementById("loadSeedPlanBtn")?.addEventListener("click", () => markUnsyncedLocalChange("seed plan reloaded"), true);
-  document.getElementById("clearBtn")?.addEventListener("click", () => markUnsyncedLocalChange("local data cleared"), true);
-  document.getElementById("importFile")?.addEventListener("change", () => markUnsyncedLocalChange("json imported"), true);
+  document.getElementById("loadSeedPlanBtn")?.addEventListener("click", () => {
+    markUnsyncedLocalChange("seed plan reloaded");
+    scheduleAutoPush("seed plan reloaded", 5000);
+  }, true);
+
+  document.getElementById("clearBtn")?.addEventListener("click", () => {
+    markUnsyncedLocalChange("local data cleared");
+    scheduleAutoPush("local data cleared", 5000);
+  }, true);
+
+  document.getElementById("importFile")?.addEventListener("change", () => {
+    markUnsyncedLocalChange("json imported");
+    scheduleAutoPush("json imported", 5000);
+  }, true);
 }
 
 function installPlanDraftProtection() {
@@ -185,6 +261,7 @@ function installPlanDraftProtection() {
       editor.value = draft.text;
       editor.dispatchEvent(new Event("input"));
       markUnsyncedLocalChange("unsaved plan draft restored");
+      scheduleAutoPush("restored plan draft", 6000);
     }
   }
 
@@ -193,6 +270,17 @@ function installPlanDraftProtection() {
       text: editor.value,
       updatedAt: new Date().toISOString()
     });
+
+    window.clearTimeout(planAutoSaveTimer);
+    planAutoSaveTimer = window.setTimeout(() => {
+      if (typeof state === "object" && state) {
+        state.planMarkdown = editor.value;
+      }
+      if (typeof saveState === "function") saveState();
+      localStorage.removeItem(PLAN_DRAFT_STORAGE_KEY);
+      markUnsyncedLocalChange("plan auto-saved after editing");
+      scheduleAutoPush("plan auto-saved after editing", 4500);
+    }, 3500);
   });
 
   window.addEventListener("beforeunload", (event) => {
@@ -280,7 +368,7 @@ function installAutoPullOnRefresh() {
 
 window.addEventListener("DOMContentLoaded", () => {
   applyPrivateDataDefaults();
-  installAutoPullCheckbox();
+  installSyncBehaviorControls();
   installPublicRepoPushGuard();
   installLocalChangeTracking();
   installPlanDraftProtection();
