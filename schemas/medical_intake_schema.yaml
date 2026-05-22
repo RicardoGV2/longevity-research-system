@@ -1,0 +1,370 @@
+schema_id: medical_intake_v0_1
+title: Medical-Style Longevity Intake Form
+version: 0.1
+language: es
+status: draft
+purpose: >
+  Structured intake form for longevity and functional health. The purpose is fixed:
+  longevity, prevention, autonomy, energy, and accumulated-risk reduction. The form
+  collects research and baseline variables, not convenience constraints.
+
+design_rules:
+  - Prioritize research variables over implementation variables.
+  - Do not ask users to define the purpose; longevity is the fixed objective.
+  - Use closed options, scales, numbers, dates, or units whenever possible.
+  - Use free text only as a supplement.
+  - Practical constraints are documented only if they explain data.
+  - Implementation adaptation comes later.
+
+response_types:
+  - single_select
+  - multi_select
+  - number
+  - scale
+  - date
+  - time
+  - text_short
+  - text_long
+  - info_only
+
+modules:
+  - id: context
+    title: Identificacion y contexto basico
+    purpose: Identify personal and contextual variables that affect interpretation of baseline data.
+    questions:
+      - id: CTX_001
+        question: "Cual es tu nombre o identificador?"
+        type: text_short
+        variable: identificador_usuario
+        frequency: once
+
+      - id: CTX_002
+        question: "Cual es la fecha de inicio del formulario?"
+        type: date
+        format: DD/MM/YYYY
+        variable: fecha_inicio
+        frequency: once
+
+      - id: CTX_003
+        question: "Cual es tu edad?"
+        type: number
+        unit: years
+        variable: edad
+        frequency: once_update_yearly
+
+      - id: CTX_004
+        question: "Cual es tu sexo biologico?"
+        type: single_select
+        options:
+          - masculino
+          - femenino
+          - intersexual
+          - prefiero_no_responder
+        variable: sexo_biologico
+        use: biomarker_interpretation
+
+      - id: CTX_005
+        question: "Cual es tu estatura?"
+        type: number
+        unit: cm
+        variable: estatura_cm
+        frequency: initial
+
+      - id: CTX_006
+        question: "Cual es tu peso real medido?"
+        type: number
+        unit: kg
+        variable: peso_real_kg
+        frequency: initial_and_followup
+        required_context:
+          - measurement_date
+          - approximate_time
+
+      - id: CTX_007
+        question: "En que pais y ciudad vives actualmente?"
+        type: text_short
+        variable: ubicacion_general
+        frequency: once_update_if_changed
+
+      - id: CTX_008
+        question: "Cual es tu modalidad de trabajo?"
+        type: single_select
+        options:
+          - casa
+          - oficina
+          - hibrido
+          - variable
+          - otro
+        variable: modalidad_trabajo
+        use: sedentary_exposure_context
+
+      - id: CTX_009
+        question: "De donde proviene la mayoria de tu comida actual?"
+        type: multi_select
+        options:
+          - preparada_en_casa_por_mi
+          - preparada_en_casa_por_otra_persona
+          - supermercado_preparada
+          - restaurante
+          - delivery_takeaway
+          - cafeteria_trabajo
+          - comida_social_familiar
+          - variable
+          - otro
+        variable: origen_comidas_frecuente
+        use: food_exposure_processing_variability
+
+      - id: CTX_010
+        question: "En que entornos ocurre tu actividad fisica actual?"
+        type: multi_select
+        options:
+          - casa
+          - gimnasio
+          - calle_parque
+          - trabajo
+          - transporte_activo_caminar
+          - deporte_organizado
+          - clase_grupal
+          - piscina
+          - bicicleta
+          - no_actividad_fisica_actual
+          - variable
+          - otro
+        variable: entornos_actividad_actual
+        use: physical_exposure_context_not_implementation_limit
+
+      - id: CTX_011
+        question: "Que estimulos fisicos recibe tu cuerpo actualmente?"
+        type: multi_select
+        options:
+          - peso_corporal
+          - caminata
+          - carrera
+          - pesas_libres
+          - maquinas_fuerza
+          - bandas_elasticas
+          - bicicleta
+          - natacion
+          - deportes
+          - baile
+          - yoga_movilidad
+          - cargas_fisicas_trabajo
+          - escaleras
+          - sedentarismo_prolongado
+          - ninguno_actualmente
+          - otro
+        variable: estimulos_fisicos_actuales
+        use: mechanical_and_cardiorespiratory_load_classification
+
+  - id: longevity_priorities
+    title: Marco fijo de longevidad y prioridades de evaluacion
+    purpose: Define systems to evaluate under the fixed objective of longevity.
+    questions:
+      - id: LONG_001
+        question: "Proposito fijo del programa"
+        type: info_only
+        value: "Maximizar longevidad, salud funcional, prevencion de enfermedad, autonomia futura, energia sostenible y reduccion de riesgo acumulativo."
+        variable: proposito_fijo_longevidad
+
+      - id: LONG_002
+        question: "Que areas necesitan evaluacion inicial porque pueden afectar longevidad o salud funcional?"
+        type: multi_select
+        options:
+          - salud_metabolica
+          - salud_cardiovascular
+          - salud_respiratoria_oxigenacion
+          - sueno_recuperacion
+          - composicion_corporal
+          - masa_muscular_fuerza
+          - salud_osea
+          - movilidad_articulaciones
+          - dolor_lesiones
+          - alimentacion_respuesta_glucemica
+          - digestion_microbiota
+          - estres_carga_mental
+          - cognicion_concentracion
+          - salud_hormonal
+          - inflamacion
+          - salud_oral_dental
+          - ambiente_luz_aire_agua_toxicos
+          - no_se
+          - otro
+        variable: areas_evaluacion_longevidad
+        frequency: initial_review_quarterly
+
+      - id: LONG_003
+        question: "Que datos faltan para evaluar correctamente longevidad y salud funcional?"
+        type: multi_select
+        options:
+          - peso_real
+          - cintura_cadera
+          - presion_arterial
+          - frecuencia_cardiaca_reposo
+          - spo2
+          - analisis_sangre
+          - ecg
+          - prueba_esfuerzo_cpet_vo2max
+          - dexa_composicion_corporal
+          - estudio_sueno
+          - registro_alimentario
+          - registro_glucosa
+          - registro_actividad_fisica
+          - registro_dolor_movilidad
+          - registro_estres
+          - datos_ambientales
+          - no_se
+          - otro
+        variable: datos_faltantes_longevidad
+        frequency: initial_update_after_measurements
+
+      - id: LONG_004
+        question: "Que condiciones futuras se busca prevenir o retrasar con el sistema?"
+        type: multi_select
+        options:
+          - diabetes
+          - enfermedad_cardiovascular
+          - hipertension
+          - higado_graso
+          - enfermedad_renal
+          - deterioro_cognitivo
+          - perdida_masa_muscular
+          - perdida_movilidad
+          - osteoporosis
+          - dolor_cronico
+          - fragilidad
+          - apnea_sueno
+          - inflamacion_cronica
+          - burnout_agotamiento_cronico
+          - cancer_prevencion_general
+          - perdida_independencia_funcional
+          - otro
+        variable: condiciones_prevenir_retrasar
+        frequency: initial_review_yearly
+
+  - id: safety_alerts
+    title: Senales de alerta y seguridad inicial
+    purpose: Identify cases requiring professional assessment before intense interventions.
+    questions:
+      - id: SEG_001
+        question: "Has tenido dolor, presion u opresion en el pecho durante esfuerzo fisico?"
+        type: single_select
+        options: [no, si, no_se]
+        variable: alerta_dolor_pecho_esfuerzo
+        alert: true
+
+      - id: SEG_002
+        question: "Has tenido desmayos, casi desmayos o mareos fuertes durante ejercicio?"
+        type: single_select
+        options: [no, si, no_se]
+        variable: alerta_desmayo_ejercicio
+        alert: true
+
+      - id: SEG_003
+        question: "Te falta el aire de forma inusual para esfuerzos leves o moderados?"
+        type: scale
+        min: 0
+        max: 10
+        variable: falta_aire_inusual
+        alert_threshold: 7
+
+      - id: SEG_004
+        question: "Roncas fuerte, te han dicho que dejas de respirar al dormir o despiertas ahogado?"
+        type: multi_select
+        options:
+          - no
+          - ronco_fuerte
+          - pausas_respiratorias
+          - despierto_ahogado
+          - somnolencia_diurna
+          - no_se
+        variable: alerta_apnea_sueno
+        alert: true
+
+  - id: physical_load
+    title: Carga fisica actual y capacidad funcional
+    purpose: Describe physical load as research variables, not implementation constraints.
+    questions:
+      - id: ACT_001
+        question: "Cual es tu nivel actual de actividad fisica estructurada?"
+        type: single_select
+        options:
+          - ninguna
+          - 1_2_dias_semana
+          - 3_4_dias_semana
+          - 5_o_mas_dias_semana
+          - variable
+          - no_se
+        variable: frecuencia_actividad_estructurada
+
+      - id: ACT_002
+        question: "Que tipos de carga fisica realizas actualmente?"
+        type: multi_select
+        options:
+          - fuerza_peso_corporal
+          - fuerza_pesas_maquinas
+          - caminata
+          - carrera
+          - bicicleta
+          - natacion
+          - baile
+          - deporte
+          - hiit_intervalos
+          - movilidad_yoga_pilates
+          - trabajo_fisico
+          - escaleras_frecuentes
+          - sedentarismo_predominante
+          - otro
+        variable: tipos_carga_fisica_actual
+
+      - id: ACT_003
+        question: "Cuanto tiempo total dedicas a actividad fisica estructurada por semana?"
+        type: single_select
+        options:
+          - 0_min
+          - menos_60_min_semana
+          - 60_150_min_semana
+          - 150_300_min_semana
+          - mas_300_min_semana
+          - no_se
+        variable: minutos_actividad_estructurada_semana
+
+      - id: ACT_004
+        question: "Que tan intensa suele ser tu actividad fisica principal?"
+        type: scale
+        min: 1
+        max: 10
+        variable: intensidad_actividad_principal
+
+  - id: nutrition_baseline
+    title: Alimentacion habitual
+    purpose: Capture actual intake patterns before designing interventions.
+    questions:
+      - id: ALI_001
+        question: "Cuantas comidas haces normalmente al dia?"
+        type: number
+        unit: meals_per_day
+        variable: comidas_dia
+
+      - id: ALI_002
+        question: "Sueles desayunar?"
+        type: single_select
+        options: [siempre, casi_siempre, a_veces, casi_nunca, nunca]
+        variable: frecuencia_desayuno
+
+      - id: ALI_003
+        question: "Cuantas bebidas azucaradas tomas por semana?"
+        type: number
+        unit: drinks_per_week
+        variable: bebidas_azucaradas_semana
+
+      - id: ALI_004
+        question: "Cuantas veces comes postre, dulces o bolleria por semana?"
+        type: number
+        unit: times_per_week
+        variable: dulces_semana
+
+      - id: ALI_005
+        question: "Cuantas veces comes comida rapida, delivery o ultraprocesados por semana?"
+        type: number
+        unit: times_per_week
+        variable: ultraprocesados_semana
