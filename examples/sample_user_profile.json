@@ -1,0 +1,19 @@
+{
+  "identificador_usuario": "sample_user",
+  "fecha_inicio": "2026-05-22",
+  "proposito_fijo_longevidad": "maximizar longevidad y salud funcional",
+  "peso_real_kg": null,
+  "ubicacion_general": "Ireland",
+  "datos_faltantes_longevidad": [
+    "peso_real",
+    "cintura_cadera",
+    "presion_arterial",
+    "analisis_sangre"
+  ],
+  "areas_evaluacion_longevidad": [
+    "salud_metabolica",
+    "salud_cardiovascular",
+    "sueno_recuperacion",
+    "alimentacion_respuesta_glucemica"
+  ]
+}
