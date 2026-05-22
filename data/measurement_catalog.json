@@ -1,0 +1,90 @@
+[
+  {
+    "id": "body_weight",
+    "name": "Body weight",
+    "category": "body_composition",
+    "measures": ["mass trend"],
+    "tool": "scale",
+    "stage": "baseline",
+    "invasiveness": "none",
+    "frequency_initial": "daily or 3-4x/week; use weekly average",
+    "interpretation_note": "Daily fluctuations reflect water, glycogen, sodium, digestion, and sleep."
+  },
+  {
+    "id": "waist_circumference",
+    "name": "Waist circumference",
+    "category": "body_composition_metabolic",
+    "measures": ["abdominal fat proxy", "risk trend"],
+    "tool": "tape_measure",
+    "stage": "baseline",
+    "invasiveness": "none",
+    "frequency_initial": "weekly or monthly",
+    "interpretation_note": "Technique and anatomical landmark must be consistent."
+  },
+  {
+    "id": "blood_pressure",
+    "name": "Blood pressure",
+    "category": "cardiovascular",
+    "measures": ["systolic", "diastolic", "pulse"],
+    "tool": "blood_pressure_monitor",
+    "stage": "baseline",
+    "invasiveness": "none",
+    "frequency_initial": "several readings across days",
+    "interpretation_note": "Technique, posture, caffeine, stress, and time of day matter."
+  },
+  {
+    "id": "pulse_oximeter",
+    "name": "Pulse oximetry",
+    "category": "oxygenation",
+    "measures": ["peripheral SpO2", "pulse"],
+    "tool": "pulse_oximeter",
+    "stage": "optional_baseline",
+    "invasiveness": "none",
+    "frequency_initial": "spot check or symptom-based",
+    "interpretation_note": "Does not measure oxygen in muscle, brain, or organs."
+  },
+  {
+    "id": "ecg_resting",
+    "name": "Resting 12-lead ECG",
+    "category": "cardiovascular",
+    "measures": ["electrical rhythm", "conduction patterns"],
+    "tool": "clinical_ecg",
+    "stage": "clinical_or_baseline_if_indicated",
+    "invasiveness": "non-invasive",
+    "frequency_initial": "as medically indicated",
+    "interpretation_note": "A short snapshot; may not detect intermittent arrhythmias."
+  },
+  {
+    "id": "cpet",
+    "name": "Cardiopulmonary Exercise Test",
+    "category": "cardiorespiratory_fitness",
+    "measures": ["VO2", "VCO2", "ventilation", "exercise limitation"],
+    "tool": "clinical_lab",
+    "stage": "advanced",
+    "invasiveness": "non-invasive",
+    "frequency_initial": "advanced baseline or follow-up",
+    "interpretation_note": "One of the most complete functional capacity tests."
+  },
+  {
+    "id": "dexa",
+    "name": "DEXA / DXA",
+    "category": "body_composition_bone",
+    "measures": ["bone density", "lean mass", "fat mass", "regional fat"],
+    "tool": "clinical_imaging",
+    "stage": "advanced",
+    "invasiveness": "low_radiation",
+    "frequency_initial": "baseline if prioritized",
+    "interpretation_note": "Useful but not necessary for first steps."
+  },
+  {
+    "id": "cgm",
+    "name": "Continuous Glucose Monitor",
+    "category": "nutrition_glucose",
+    "measures": ["interstitial glucose trends"],
+    "tool": "sensor",
+    "stage": "experiment",
+    "invasiveness": "minimally_invasive",
+    "frequency_initial": "10-14 day experiment",
+    "interpretation_note": "Use with hypotheses; avoid overinterpreting normal spikes."
+  }
+]
