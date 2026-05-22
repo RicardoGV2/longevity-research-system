@@ -25,7 +25,7 @@
 
   <main>
     <section class="notice">
-      <strong>Storage:</strong> this MVP stores data in this browser. Use Export/Import for manual backups or GitHub Sync to update between devices.
+      <strong>Storage:</strong> this public website stores data in this browser. For cross-device sync, use a separate private data repo such as <strong>longevity-private-data</strong>.
     </section>
 
     <nav class="tabs" aria-label="Main sections">
@@ -204,11 +204,11 @@
       <h2>Data & GitHub Sync</h2>
       <section class="sync-box">
         <h3>GitHub sync settings</h3>
-        <p class="muted">For personal use only. Use a fine-grained token with Contents read/write permission. A second private data repo is safer for real health data.</p>
+        <p class="muted">Use a <strong>private</strong> data repo for real health data. Recommended repo: <code>longevity-private-data</code>. Use a fine-grained credential with only Contents read/write permission for that private repo.</p>
         <form id="syncSettingsForm" class="form-grid">
-          <label>GitHub token <input name="token" type="password" autocomplete="off" placeholder="ghp_... or github_pat_..." /></label>
+          <label>GitHub credential <input name="token" type="password" autocomplete="off" placeholder="paste fine-grained credential here" /></label>
           <label>Owner <input name="owner" type="text" value="RicardoGV2" /></label>
-          <label>Repo <input name="repo" type="text" value="longevity-research-system" /></label>
+          <label>Private data repo <input name="repo" type="text" value="longevity-private-data" /></label>
           <label>Branch <input name="branch" type="text" value="main" /></label>
           <label class="full">Sync file path <input name="path" type="text" value="sync/personal-sync.json" /></label>
           <button type="submit">Save sync settings locally</button>
@@ -227,9 +227,10 @@
   </main>
 
   <footer>
-    <p>Research MVP. Not medical advice. Data is stored locally unless exported or synced by you.</p>
+    <p>Research MVP. Not medical advice. Data is stored locally unless exported or synced by you to a private data repo.</p>
   </footer>
 
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=6"></script>
+  <script src="sync-guard.js?v=1"></script>
 </body>
 </html>
