@@ -1,0 +1,24 @@
+{
+  "recipe_name": "sample_recipe",
+  "expected_physiological_function": [
+    "energia_estable",
+    "saciedad"
+  ],
+  "ingredients": [],
+  "protein_g": null,
+  "carbs_g": null,
+  "fiber_g": null,
+  "free_added_sugar_g": null,
+  "fat_g": null,
+  "proposed_timing": [
+    "desayuno"
+  ],
+  "proposed_food_order": "no_definido",
+  "metrics_to_observe": [
+    "energia_1h",
+    "hambre_2_3h",
+    "digestion"
+  ],
+  "observed_result": "",
+  "recipe_decision": "pendiente"
+}
