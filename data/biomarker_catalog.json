@@ -1,0 +1,92 @@
+[
+  {
+    "id": "cbc",
+    "name": "Complete Blood Count",
+    "category": "blood_general",
+    "purpose": "Anemia, infection, blood cells, platelets, and oxygen transport context."
+  },
+  {
+    "id": "cmp",
+    "name": "Comprehensive Metabolic Panel / Biochemistry",
+    "category": "metabolic_general",
+    "purpose": "Liver, kidney, electrolytes, glucose context, and general metabolic state."
+  },
+  {
+    "id": "fasting_glucose",
+    "name": "Fasting Glucose",
+    "category": "metabolic",
+    "purpose": "Baseline glucose regulation."
+  },
+  {
+    "id": "fasting_insulin",
+    "name": "Fasting Insulin",
+    "category": "metabolic",
+    "purpose": "Insulin resistance context when interpreted with glucose and clinical context."
+  },
+  {
+    "id": "hba1c",
+    "name": "HbA1c",
+    "category": "metabolic",
+    "purpose": "Approximate two-to-three-month glucose exposure."
+  },
+  {
+    "id": "lipid_panel",
+    "name": "Lipid Panel",
+    "category": "cardiometabolic",
+    "purpose": "Total cholesterol, LDL-C, HDL-C, and triglycerides."
+  },
+  {
+    "id": "apob",
+    "name": "ApoB",
+    "category": "cardiovascular_risk",
+    "purpose": "Atherogenic particle burden."
+  },
+  {
+    "id": "lpa",
+    "name": "Lp(a)",
+    "category": "genetic_cardiovascular_risk",
+    "purpose": "Largely genetic cardiovascular risk factor."
+  },
+  {
+    "id": "hscrp",
+    "name": "hs-CRP",
+    "category": "inflammation",
+    "purpose": "Systemic low-grade inflammation."
+  },
+  {
+    "id": "ferritin_iron",
+    "name": "Ferritin / Iron / Transferrin Saturation",
+    "category": "nutrient_status",
+    "purpose": "Iron status, fatigue, anemia, and performance context."
+  },
+  {
+    "id": "vitamin_d",
+    "name": "Vitamin D 25(OH)D",
+    "category": "nutrient_status",
+    "purpose": "Vitamin D status, especially relevant in low-light environments such as Ireland."
+  },
+  {
+    "id": "b12_folate",
+    "name": "B12 / Folate",
+    "category": "nutrient_status",
+    "purpose": "Neurological health, methylation context, and anemia context."
+  },
+  {
+    "id": "thyroid",
+    "name": "TSH / Free T4 / Free T3 if needed",
+    "category": "hormonal",
+    "purpose": "Thyroid function and metabolic context."
+  },
+  {
+    "id": "kidney",
+    "name": "Creatinine / eGFR / Cystatin C if needed",
+    "category": "renal",
+    "purpose": "Kidney function and protein/supplement safety context."
+  },
+  {
+    "id": "liver",
+    "name": "ALT / AST / GGT / Bilirubin / ALP",
+    "category": "hepatic",
+    "purpose": "Liver function and fatty liver context."
+  }
+]
