@@ -2,14 +2,13 @@
   let currentMode = "preview";
   let lastHeadings = [];
 
-  function escapeHtml(value) {
-    return String(value ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
+  const $ = (selector) => document.querySelector(selector);
+  const esc = (value) => String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 
   function slugify(text) {
     return String(text || "section")
@@ -23,99 +22,126 @@
   }
 
   function inlineMarkdown(text) {
-    return escapeHtml(text)
+    return esc(text)
       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
       .replace(/`([^`]+)`/g, "<code>$1</code>");
   }
 
-  function closeLists(state) {
-    if (state.inUl) { state.html += "</ul>"; state.inUl = false; }
-    if (state.inOl) { state.html += "</ol>"; state.inOl = false; }
-  }
-
-  function closeTable(state) {
-    if (state.inTable) { state.html += "</tbody></table>"; state.inTable = false; }
+  function getElements() {
+    return {
+      plan: document.getElementById("plan"),
+      editor: document.getElementById("planEditor"),
+      preview: document.getElementById("planPreview"),
+      saveBtn: document.getElementById("savePlanBtn"),
+      toggleBtn: document.getElementById("planModeToggleBtn"),
+      tocList: document.getElementById("planTocList"),
+      label: document.querySelector("#plan .editor-label"),
+      previewTitle: document.getElementById("planPreviewTitle")
+    };
   }
 
   function markdownToHtml(markdown) {
     const lines = String(markdown || "").split("\n");
     const used = new Map();
     const headings = [];
-    const state = { html: "", inUl: false, inOl: false, inTable: false };
+    let html = "";
+    let charIndex = 0;
+    let inUl = false;
+    let inOl = false;
+    let inTable = false;
+
+    function closeLists() {
+      if (inUl) { html += "</ul>"; inUl = false; }
+      if (inOl) { html += "</ol>"; inOl = false; }
+    }
+
+    function closeTable() {
+      if (inTable) { html += "</tbody></table>"; inTable = false; }
+    }
 
     function uniqueSlug(base) {
-      const current = used.get(base) || 0;
-      used.set(base, current + 1);
-      return current === 0 ? base : `${base}-${current + 1}`;
+      const count = used.get(base) || 0;
+      used.set(base, count + 1);
+      return count === 0 ? base : `${base}-${count + 1}`;
     }
 
     lines.forEach((rawLine, lineIndex) => {
       const line = rawLine.trimEnd();
       const trimmed = line.trim();
+      const headingMatch = trimmed.match(/^(#{1,4})\s+(.+)$/);
 
       if (!trimmed) {
-        closeLists(state);
-        closeTable(state);
+        closeLists();
+        closeTable();
+        charIndex += rawLine.length + 1;
         return;
       }
 
-      const headingMatch = trimmed.match(/^(#{1,4})\s+(.+)$/);
       if (headingMatch) {
-        closeLists(state);
-        closeTable(state);
+        closeLists();
+        closeTable();
         const level = headingMatch[1].length;
         const text = headingMatch[2].trim();
-        const id = uniqueSlug(slugify(text.replace(/\*\*/g, "")));
-        headings.push({ id, text: text.replace(/\*\*/g, ""), level, lineIndex });
-        state.html += `<h${level} id="${id}" data-line="${lineIndex}"><a class="heading-anchor" href="#${id}" data-anchor="${id}">${inlineMarkdown(text)}</a></h${level}>`;
+        const cleanText = text.replace(/\*\*/g, "");
+        const id = uniqueSlug(slugify(cleanText));
+        headings.push({ id, text: cleanText, level, lineIndex, charIndex });
+        html += `<h${level} id="${id}" data-line="${lineIndex}" data-char="${charIndex}"><a class="heading-anchor" href="#${id}" data-anchor="${id}">${inlineMarkdown(text)}</a></h${level}>`;
+        charIndex += rawLine.length + 1;
         return;
       }
 
       if (trimmed === "---") {
-        closeLists(state);
-        closeTable(state);
-        state.html += "<hr>";
+        closeLists();
+        closeTable();
+        html += "<hr>";
+        charIndex += rawLine.length + 1;
         return;
       }
 
-      const isDividerRow = /^\|?\s*:?-{3,}/.test(trimmed);
-      if (isDividerRow) return;
+      if (/^\|?\s*:?-{3,}/.test(trimmed)) {
+        charIndex += rawLine.length + 1;
+        return;
+      }
 
       const looksLikeTable = trimmed.includes("|") && lines[lineIndex + 1]?.trim()?.match(/^\|?\s*:?-{3,}/);
-      const inExistingTable = state.inTable && trimmed.includes("|");
+      const inExistingTable = inTable && trimmed.includes("|");
       if (looksLikeTable || inExistingTable) {
-        closeLists(state);
+        closeLists();
         const rawCells = trimmed.split("|");
         const cells = rawCells
           .map((cell) => cell.trim())
           .filter((cell, index) => !(index === 0 && cell === "") && !(index === rawCells.length - 1 && cell === ""));
-        if (!state.inTable) { state.html += "<table><tbody>"; state.inTable = true; }
-        state.html += `<tr>${cells.map((cell) => `<td>${inlineMarkdown(cell)}</td>`).join("")}</tr>`;
+        if (!inTable) { html += "<table><tbody>"; inTable = true; }
+        html += `<tr>${cells.map((cell) => `<td>${inlineMarkdown(cell)}</td>`).join("")}</tr>`;
+        charIndex += rawLine.length + 1;
         return;
       }
 
-      closeTable(state);
+      closeTable();
 
       if (trimmed.startsWith("- ")) {
-        if (!state.inUl) { closeLists(state); state.html += "<ul>"; state.inUl = true; }
-        state.html += `<li>${inlineMarkdown(trimmed.slice(2))}</li>`;
+        if (!inUl) { closeLists(); html += "<ul>"; inUl = true; }
+        html += `<li>${inlineMarkdown(trimmed.slice(2))}</li>`;
+        charIndex += rawLine.length + 1;
         return;
       }
 
       const ordered = trimmed.match(/^\d+\.\s+(.+)$/);
       if (ordered) {
-        if (!state.inOl) { closeLists(state); state.html += "<ol>"; state.inOl = true; }
-        state.html += `<li>${inlineMarkdown(ordered[1])}</li>`;
+        if (!inOl) { closeLists(); html += "<ol>"; inOl = true; }
+        html += `<li>${inlineMarkdown(ordered[1])}</li>`;
+        charIndex += rawLine.length + 1;
         return;
       }
 
-      closeLists(state);
-      state.html += `<p data-line="${lineIndex}">${inlineMarkdown(trimmed)}</p>`;
+      closeLists();
+      html += `<p data-line="${lineIndex}" data-char="${charIndex}">${inlineMarkdown(trimmed)}</p>`;
+      charIndex += rawLine.length + 1;
     });
 
-    closeLists(state);
-    closeTable(state);
-    return { html: state.html || "<p>No plan content yet.</p>", headings };
+    closeLists();
+    closeTable();
+    return { html: html || "<p>No plan content yet.</p>", headings };
   }
 
   function ensureStyles() {
@@ -123,10 +149,7 @@
     const style = document.createElement("style");
     style.id = "planUiDynamicStyles";
     style.textContent = `
-      #plan .editor-label,
-      #plan .preview-title { margin-top: 0; }
-      .plan-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 14px 0 16px; }
-      .plan-toolbar .plan-note { color: var(--muted); font-weight: 650; }
+      #plan .editor-label, #plan .preview-title { margin-top: 0; }
       .plan-shell { display: grid; grid-template-columns: minmax(190px, 270px) minmax(0, 1fr); gap: 18px; align-items: start; }
       .plan-toc { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; border: 1px solid var(--line); background: #fbfcff; border-radius: 18px; padding: 14px; }
       .plan-toc-title { font-weight: 800; margin-bottom: 10px; }
@@ -144,29 +167,15 @@
       .markdown-preview table { width: 100%; border-collapse: collapse; margin: 12px 0; display: block; overflow-x: auto; }
       .markdown-preview td, .markdown-preview th { border: 1px solid var(--line); padding: 8px; vertical-align: top; }
       .markdown-preview code { background: #eef2ff; padding: 2px 5px; border-radius: 6px; }
-      @media (max-width: 780px) {
-        .plan-shell { grid-template-columns: 1fr; }
-        .plan-toc { position: relative; top: 0; max-height: 290px; }
-      }
+      @media (max-width: 780px) { .plan-shell { grid-template-columns: 1fr; } .plan-toc { position: relative; top: 0; max-height: 290px; } }
     `;
     document.head.appendChild(style);
-  }
-
-  function getElements() {
-    return {
-      plan: document.getElementById("plan"),
-      editor: document.getElementById("planEditor"),
-      preview: document.getElementById("planPreview"),
-      saveBtn: document.getElementById("savePlanBtn"),
-      loadSeedBtn: document.getElementById("loadSeedPlanBtn"),
-      toggleBtn: document.getElementById("planModeToggleBtn"),
-      tocList: document.getElementById("planTocList")
-    };
   }
 
   function renderPlan() {
     const { editor, preview, tocList } = getElements();
     if (!editor || !preview) return;
+
     const result = markdownToHtml(editor.value || "");
     lastHeadings = result.headings;
     preview.innerHTML = result.html;
@@ -174,15 +183,15 @@
     if (tocList) {
       tocList.innerHTML = lastHeadings
         .filter((h) => h.level <= 3)
-        .map((h) => `<a href="#${h.id}" class="toc-level-${h.level}" data-anchor="${h.id}">${escapeHtml(h.text)}</a>`)
+        .map((h) => `<a href="#${h.id}" class="toc-level-${h.level}" data-anchor="${h.id}">${esc(h.text)}</a>`)
         .join("") || `<span class="muted">No headings yet.</span>`;
 
       tocList.querySelectorAll("a").forEach((link) => {
         link.addEventListener("click", (event) => {
           event.preventDefault();
           const anchor = link.dataset.anchor;
-          if (currentMode === "markdown") scrollEditorToAnchor(anchor, true);
-          else scrollPreviewToAnchor(anchor, true);
+          if (currentMode === "markdown") scrollEditorToAnchor(anchor);
+          else scrollPreviewToAnchor(anchor);
           history.replaceState(null, "", `#${anchor}`);
         });
       });
@@ -193,84 +202,90 @@
         event.preventDefault();
         const anchor = link.dataset.anchor;
         history.replaceState(null, "", `#${anchor}`);
-        scrollPreviewToAnchor(anchor, true);
+        scrollPreviewToAnchor(anchor);
       });
     });
   }
 
-  function activeTocAnchor() {
-    const { tocList } = getElements();
-    return tocList?.querySelector("a.active")?.dataset?.anchor || null;
-  }
-
   function currentAnchor() {
-    const { editor, preview } = getElements();
+    const { editor, preview, tocList } = getElements();
     renderPlan();
 
     if (currentMode === "preview" && preview) {
-      const active = activeTocAnchor();
+      const active = tocList?.querySelector("a.active")?.dataset?.anchor;
       if (active) return active;
 
       const headings = [...preview.querySelectorAll("h1,h2,h3,h4")];
-      if (!headings.length) return lastHeadings[0]?.id || null;
-
-      const targetY = Math.min(240, window.innerHeight * 0.35);
-      const beforeTarget = headings
-        .filter((heading) => heading.getBoundingClientRect().top <= targetY)
-        .pop();
-      if (beforeTarget?.id) return beforeTarget.id;
-
-      const closest = headings
-        .map((heading) => ({ id: heading.id, distance: Math.abs(heading.getBoundingClientRect().top - targetY) }))
-        .sort((a, b) => a.distance - b.distance)[0];
-      return closest?.id || lastHeadings[0]?.id || null;
+      const targetY = Math.min(Math.max(window.innerHeight * 0.32, 130), 260);
+      return headings.filter((heading) => heading.getBoundingClientRect().top <= targetY).pop()?.id
+        || headings.map((heading) => ({ id: heading.id, d: Math.abs(heading.getBoundingClientRect().top - targetY) })).sort((a, b) => a.d - b.d)[0]?.id
+        || lastHeadings[0]?.id
+        || null;
     }
 
     if (editor) {
-      const before = editor.value.slice(0, editor.selectionStart || 0);
-      const line = before.split("\n").length - 1;
-      return lastHeadings.filter((h) => h.lineIndex <= line).pop()?.id || activeTocAnchor() || lastHeadings[0]?.id || null;
+      const pos = editor.selectionStart || 0;
+      return lastHeadings.filter((h) => h.charIndex <= pos).pop()?.id || lastHeadings[0]?.id || null;
     }
-    return activeTocAnchor() || lastHeadings[0]?.id || null;
+    return lastHeadings[0]?.id || null;
   }
 
-  function scrollPreviewToAnchor(anchor, instant = false) {
-    if (!anchor) return;
-    const element = document.getElementById(anchor);
-    if (element) element.scrollIntoView({ behavior: instant ? "auto" : "smooth", block: "start" });
+  function caretTopInTextarea(textarea, position) {
+    const computed = window.getComputedStyle(textarea);
+    const mirror = document.createElement("div");
+    const props = ["boxSizing", "fontFamily", "fontSize", "fontWeight", "fontStyle", "letterSpacing", "textTransform", "wordSpacing", "textIndent", "lineHeight", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft", "borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth"];
+
+    mirror.style.position = "absolute";
+    mirror.style.visibility = "hidden";
+    mirror.style.left = "-9999px";
+    mirror.style.top = "0";
+    mirror.style.whiteSpace = "pre-wrap";
+    mirror.style.overflowWrap = "break-word";
+    mirror.style.wordWrap = "break-word";
+    mirror.style.width = `${textarea.clientWidth}px`;
+    props.forEach((prop) => { mirror.style[prop] = computed[prop]; });
+
+    const marker = document.createElement("span");
+    mirror.textContent = textarea.value.slice(0, position);
+    marker.textContent = textarea.value.slice(position, position + 1) || ".";
+    mirror.appendChild(marker);
+    document.body.appendChild(mirror);
+    const top = marker.offsetTop;
+    document.body.removeChild(mirror);
+    return top;
   }
 
-  function scrollEditorToAnchor(anchor, instant = true) {
+  function scrollEditorToAnchor(anchor) {
     const { editor } = getElements();
     if (!editor || !anchor) return;
     renderPlan();
     const heading = lastHeadings.find((h) => h.id === anchor) || lastHeadings[0];
     if (!heading) return;
 
-    const lines = editor.value.split("\n");
-    const start = lines.slice(0, heading.lineIndex).join("\n").length + (heading.lineIndex > 0 ? 1 : 0);
-    const estimatedLineHeight = 22;
-    const targetEditorTop = Math.max(0, heading.lineIndex * estimatedLineHeight - 110);
-
-    function apply() {
+    const apply = () => {
+      const top = caretTopInTextarea(editor, heading.charIndex);
       editor.focus({ preventScroll: true });
-      editor.setSelectionRange(start, start);
-      editor.scrollTop = targetEditorTop;
-    }
+      editor.setSelectionRange(heading.charIndex, heading.charIndex + Math.min(120, Math.max(1, heading.text.length)));
+      editor.scrollTop = Math.max(0, top - 105);
+    };
 
     apply();
-    window.requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
       apply();
-      const pageTop = Math.max(0, window.scrollY + editor.getBoundingClientRect().top - 130);
-      window.scrollTo({ top: pageTop, behavior: instant ? "auto" : "smooth" });
-      window.setTimeout(apply, 60);
+      const pageTop = Math.max(0, window.scrollY + editor.getBoundingClientRect().top - 132);
+      window.scrollTo({ top: pageTop, behavior: "auto" });
+      setTimeout(apply, 60);
+      setTimeout(apply, 180);
     });
   }
 
+  function scrollPreviewToAnchor(anchor) {
+    if (!anchor) return;
+    document.getElementById(anchor)?.scrollIntoView({ behavior: "auto", block: "start" });
+  }
+
   function setMode(mode, anchor = null) {
-    const { editor, preview, saveBtn, toggleBtn, plan } = getElements();
-    const label = plan?.querySelector(".editor-label");
-    const previewTitle = document.getElementById("planPreviewTitle");
+    const { editor, preview, saveBtn, toggleBtn, label, previewTitle } = getElements();
     if (!editor || !preview) return;
 
     const targetAnchor = anchor || currentAnchor();
@@ -285,7 +300,7 @@
       previewTitle?.classList.add("is-hidden");
       if (saveBtn) saveBtn.style.display = "inline-flex";
       if (toggleBtn) toggleBtn.textContent = "Show preview";
-      setTimeout(() => scrollEditorToAnchor(targetAnchor, true), 80);
+      setTimeout(() => scrollEditorToAnchor(targetAnchor), 80);
     } else {
       editor.classList.add("is-hidden");
       preview.classList.remove("is-hidden");
@@ -293,7 +308,7 @@
       previewTitle?.classList.remove("is-hidden");
       if (saveBtn) saveBtn.style.display = "none";
       if (toggleBtn) toggleBtn.textContent = "Edit Markdown";
-      setTimeout(() => scrollPreviewToAnchor(targetAnchor, true), 80);
+      setTimeout(() => scrollPreviewToAnchor(targetAnchor), 80);
     }
   }
 
@@ -330,8 +345,8 @@
     shell.className = "plan-shell";
     const view = document.createElement("div");
     view.className = "plan-view";
-
     const label = plan.querySelector(".editor-label");
+
     shell.appendChild(toc);
     shell.appendChild(view);
     plan.appendChild(shell);
@@ -351,15 +366,12 @@
 
     setTimeout(() => {
       renderPlan();
-      const initialAnchor = location.hash ? decodeURIComponent(location.hash.slice(1)) : currentAnchor();
-      setMode("preview", initialAnchor);
+      setMode("preview", location.hash ? decodeURIComponent(location.hash.slice(1)) : currentAnchor());
     }, 350);
   }
 
   window.enhancePlanTab = enhancePlanTab;
   window.enhancedPlanRender = renderPlan;
 
-  document.addEventListener("DOMContentLoaded", () => {
-    setTimeout(enhancePlanTab, 500);
-  });
+  document.addEventListener("DOMContentLoaded", () => setTimeout(enhancePlanTab, 500));
 })();
