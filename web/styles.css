@@ -163,8 +163,12 @@ main {
 }
 
 .cards {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   margin-bottom: 18px;
+}
+
+@media (max-width: 1080px) {
+  .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 .card {
@@ -474,7 +478,7 @@ footer {
 
 .analyses-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr));
   gap: 14px;
 }
 
@@ -614,6 +618,8 @@ footer {
   align-items: center;
   gap: 8px;
   min-width: 0;
+  flex-wrap: wrap;
+  row-gap: 6px;
 }
 
 .status-dot {
@@ -635,12 +641,14 @@ footer {
   font: inherit;
   color: var(--ink);
   font-weight: 600;
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 160px;
+  min-width: 140px;
   cursor: pointer;
   padding: 4px 0;
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
 }
 
 .inline-select {
@@ -788,13 +796,29 @@ footer {
   .progress-row { flex-direction: column; align-items: stretch; }
   .progress-label { text-align: left; }
   .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .analyses-filters { grid-template-columns: 1fr 1fr; }
+  .inline-select { flex: 1 1 auto; min-width: 0; }
+  .item-name { flex: 1 1 100%; }
+  .category-head { padding: 12px; }
+  .category-body { padding: 6px 12px 12px; }
+  .summary-tile strong { font-size: 1.4rem; }
 }
 
 @media (max-width: 480px) {
   .item-details-grid { grid-template-columns: 1fr; }
-  .item-row { flex-wrap: wrap; }
-  .inline-select { font-size: 0.78rem; }
+  .item-row { flex-wrap: wrap; row-gap: 8px; }
+  .inline-select { font-size: 0.78rem; padding: 6px 8px; }
   .add-item-form { flex-direction: column; }
+  .analyses-filters { grid-template-columns: 1fr; }
+  .category-counter { font-size: 0.72rem; padding: 3px 8px; }
+  .category-title { font-size: 0.95rem; }
+  .category-desc { font-size: 0.78rem; }
+  .category-head-left { gap: 10px; }
+  .category-code { width: 26px; height: 26px; }
+  .summary-tile { padding: 10px 12px; }
+  .summary-tile span { font-size: 0.7rem; }
+  .summary-tile strong { font-size: 1.25rem; }
+  .item-name { font-size: 0.92rem; }
 }
 
 @media (max-width: 780px) {
