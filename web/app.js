@@ -2,13 +2,26 @@ const STORAGE_KEY = "longevityResearchSystem.v0.1";
 const SYNC_SETTINGS_KEY = "longevityResearchSystem.syncSettings.v0.1";
 const SEED_PLAN_PATH = "plans/longevity_base.md";
 
-const emptyState = {
-  dailyLogs: [],
-  foodLogs: [],
-  measurements: [],
-  recipeExperiments: [],
-  planMarkdown: ""
-};
+function defaultAnalyses() {
+  return { categories: [], items: [] };
+}
+
+function freshEmptyState() {
+  return {
+    dailyLogs: [],
+    foodLogs: [],
+    measurements: [],
+    recipeExperiments: [],
+    planMarkdown: "",
+    analyses: defaultAnalyses()
+  };
+}
+
+const emptyState = freshEmptyState();
+
+const analysisFilters = { search: "", category: "all", status: "all", priority: "all" };
+const expandedCategories = new Set();
+const expandedItems = new Set();
 
 let state = loadState();
 let syncSettings = loadSyncSettings();
@@ -16,10 +29,22 @@ let syncSettings = loadSyncSettings();
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? { ...emptyState, ...JSON.parse(raw) } : { ...emptyState };
+    const base = freshEmptyState();
+    if (!raw) return base;
+    const parsed = JSON.parse(raw);
+    const merged = { ...base, ...parsed };
+    if (!merged.analyses || typeof merged.analyses !== "object") {
+      merged.analyses = defaultAnalyses();
+    } else {
+      merged.analyses = {
+        categories: Array.isArray(merged.analyses.categories) ? merged.analyses.categories : [],
+        items: Array.isArray(merged.analyses.items) ? merged.analyses.items : []
+      };
+    }
+    return merged;
   } catch (error) {
     console.error("Failed to load state", error);
-    return { ...emptyState };
+    return freshEmptyState();
   }
 }
 
@@ -181,7 +206,15 @@ function setupImportExport() {
     if (!file) return;
     try {
       const imported = JSON.parse(await file.text());
-      state = { ...emptyState, ...imported };
+      state = { ...freshEmptyState(), ...imported };
+      if (!state.analyses || typeof state.analyses !== "object") {
+        state.analyses = defaultAnalyses();
+      } else {
+        state.analyses = {
+          categories: Array.isArray(state.analyses.categories) ? state.analyses.categories : [],
+          items: Array.isArray(state.analyses.items) ? state.analyses.items : []
+        };
+      }
       saveState();
       syncPlanEditorFromState();
       event.target.value = "";
@@ -191,13 +224,16 @@ function setupImportExport() {
     }
   });
 
-  document.getElementById("clearBtn").addEventListener("click", () => {
-    const ok = confirm("Clear all local data in this browser? Export or push to GitHub first if you want a backup.");
-    if (!ok) return;
-    state = { ...emptyState };
-    saveState();
-    syncPlanEditorFromState();
-  });
+  const clearBtn = document.getElementById("clearBtn");
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+      const ok = confirm("Clear all local data in this browser? Export or push to GitHub first if you want a backup.");
+      if (!ok) return;
+      state = freshEmptyState();
+      saveState();
+      syncPlanEditorFromState();
+    });
+  }
 }
 
 async function initializePlan() {
@@ -265,6 +301,7 @@ function renderMarkdownPreview(markdown) {
   const lines = String(markdown || "").split("\n");
   let html = "";
   let inList = false;
+  let inAnalysesSection = false;
 
   function closeList() {
     if (inList) {
@@ -279,12 +316,26 @@ function renderMarkdownPreview(markdown) {
       closeList();
       continue;
     }
-    if (line.startsWith("### ")) {
+    if (line.startsWith("## ")) {
       closeList();
-      html += `<h3>${escapeHtml(line.slice(4))}</h3>`;
-    } else if (line.startsWith("## ")) {
+      const heading = line.slice(3);
+      inAnalysesSection = /^4\.\s/.test(heading);
+      html += `<h2>${escapeHtml(heading)}</h2>`;
+    } else if (line.startsWith("### ")) {
       closeList();
-      html += `<h2>${escapeHtml(line.slice(3))}</h2>`;
+      const heading = line.slice(4);
+      if (inAnalysesSection) {
+        const match = heading.match(/^([A-Za-z])\.\s+(.+)$/);
+        if (match) {
+          const code = match[1].toUpperCase();
+          const badge = renderCategoryProgressBadge(code);
+          html += `<h3 id="plan-analysis-${escapeHtml(code)}" class="plan-analysis-heading">${escapeHtml(heading)}${badge}</h3>`;
+        } else {
+          html += `<h3>${escapeHtml(heading)}</h3>`;
+        }
+      } else {
+        html += `<h3>${escapeHtml(heading)}</h3>`;
+      }
     } else if (line.startsWith("# ")) {
       closeList();
       html += `<h1>${escapeHtml(line.slice(2))}</h1>`;
@@ -307,6 +358,13 @@ function renderMarkdownPreview(markdown) {
   }
   closeList();
   preview.innerHTML = html || "<p>No plan content yet.</p>";
+}
+
+function renderCategoryProgressBadge(code) {
+  const category = (state.analyses?.categories || []).find((c) => c.code === code);
+  if (!category) return ` <span class="cat-progress-badge missing" data-no-category="${escapeHtml(code)}" title="Sin categoría en la pestaña Análisis">sin categoría</span>`;
+  const stats = categoryStats(category.id);
+  return ` <button type="button" class="cat-progress-badge" data-cat-id="${escapeHtml(category.id)}" title="Ver en la pestaña Análisis">${stats.done}/${stats.total} hechos</button>`;
 }
 
 function inlineMarkdown(text) {
@@ -406,7 +464,15 @@ async function pullFromGitHub() {
     }
     const payload = JSON.parse(decodeBase64Unicode(metadata.content));
     if (!payload.appState) throw new Error("Sync file does not contain appState.");
-    state = { ...emptyState, ...payload.appState };
+    state = { ...freshEmptyState(), ...payload.appState };
+    if (!state.analyses || typeof state.analyses !== "object") {
+      state.analyses = defaultAnalyses();
+    } else {
+      state.analyses = {
+        categories: Array.isArray(state.analyses.categories) ? state.analyses.categories : [],
+        items: Array.isArray(state.analyses.items) ? state.analyses.items : []
+      };
+    }
     saveState();
     syncPlanEditorFromState();
     setSyncStatus(`Pulled from GitHub. Last remote update: ${payload.updatedAt || "unknown"}`);
