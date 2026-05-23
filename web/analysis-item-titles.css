@@ -1,0 +1,77 @@
+/* Stronger visual hierarchy for analysis subtask titles only. */
+
+.analysis-item {
+  padding: 0;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.analysis-item > .item-row {
+  position: relative;
+  align-items: flex-start;
+  padding: 12px 12px 10px 16px;
+  border-bottom: 1px solid rgba(223, 228, 238, 0.9);
+  background: linear-gradient(90deg, #f8fbff 0%, #ffffff 58%);
+}
+
+.analysis-item > .item-row::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--accent);
+  opacity: 0.72;
+}
+
+.analysis-item .status-dot {
+  margin-top: 8px;
+}
+
+.analysis-item .item-name {
+  flex-basis: 100%;
+  min-width: 0;
+  padding: 0 0 4px;
+  margin-bottom: 2px;
+  font-size: clamp(1.04rem, 1.7vw, 1.24rem);
+  line-height: 1.25;
+  font-weight: 850;
+  color: #111827;
+  letter-spacing: -0.015em;
+}
+
+.analysis-item .item-name:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.analysis-item .kind-chip,
+.analysis-item .latest-update,
+.analysis-item .computed-age,
+.analysis-item .inline-select,
+.analysis-item .icon-btn {
+  margin-top: 2px;
+}
+
+.analysis-item .item-details {
+  margin-top: 0;
+  padding: 12px;
+  border-top: 0;
+  background: #ffffff;
+}
+
+.analysis-item .updates-block {
+  margin-top: 2px;
+  padding-top: 12px;
+}
+
+@media (max-width: 560px) {
+  .analysis-item > .item-row {
+    padding: 12px 10px 10px 14px;
+  }
+
+  .analysis-item .item-name {
+    font-size: 1.08rem;
+  }
+}
