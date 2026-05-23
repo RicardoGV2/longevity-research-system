@@ -247,6 +247,20 @@ main {
   background: white;
 }
 
+.form-grid input[type="date"] {
+  width: min(100%, 220px);
+  max-width: 220px;
+  min-height: 44px;
+  text-align: center;
+  justify-self: start;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.form-grid input[type="date"]::-webkit-date-and-time-value {
+  text-align: center;
+}
+
 .form-grid .full {
   grid-column: 1 / -1;
 }
