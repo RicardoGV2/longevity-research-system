@@ -25,6 +25,9 @@
 
       #plan .plan-toc {
         align-self: start;
+        background: #fbfcff;
+        border: 1px solid var(--line);
+        border-radius: 18px;
       }
 
       #plan .plan-toc.is-following {
@@ -32,10 +35,12 @@
         top: ${TOP_OFFSET}px !important;
         left: var(--plan-toc-left) !important;
         width: var(--plan-toc-width) !important;
+        height: calc(100vh - ${TOP_OFFSET * 2}px) !important;
         max-height: calc(100vh - ${TOP_OFFSET * 2}px) !important;
-        overflow: auto !important;
-        z-index: 8;
-        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.10);
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        z-index: 80;
+        box-shadow: 0 14px 36px rgba(15, 23, 42, 0.16);
       }
 
       #plan .plan-toc-spacer {
@@ -46,6 +51,7 @@
         display: block;
         width: var(--plan-toc-width);
         min-height: 1px;
+        flex: 0 0 var(--plan-toc-width);
       }
 
       #plan .plan-view {
@@ -69,6 +75,7 @@
           top: 0 !important;
           left: auto !important;
           width: auto !important;
+          height: auto !important;
           max-height: 290px !important;
           box-shadow: none;
         }
@@ -120,17 +127,9 @@
       return;
     }
 
-    const planRect = plan.getBoundingClientRect();
     const shellRect = shell.getBoundingClientRect();
-    const tocRect = toc.classList.contains("is-following") ? spacer.getBoundingClientRect() : toc.getBoundingClientRect();
-    const shouldFloat = planRect.top < TOP_OFFSET && planRect.bottom > TOP_OFFSET + 180;
-
-    if (!shouldFloat) {
-      resetToc();
-      return;
-    }
-
-    const width = Math.max(MIN_TOC_WIDTH, Math.min(tocRect.width || 260, MAX_TOC_WIDTH));
+    const widthSource = toc.classList.contains("is-following") ? spacer.getBoundingClientRect() : toc.getBoundingClientRect();
+    const width = Math.max(MIN_TOC_WIDTH, Math.min(widthSource.width || 260, MAX_TOC_WIDTH));
     const left = Math.max(8, shellRect.left);
 
     toc.style.setProperty("--plan-toc-left", `${left}px`);
