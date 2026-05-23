@@ -1,10 +1,13 @@
 (() => {
   const DESKTOP_BREAKPOINT = 781;
   const TOP_OFFSET = 14;
+  const MIN_TOC_WIDTH = 190;
+  const MAX_TOC_WIDTH = 280;
 
   function getPlanElements() {
     return {
       plan: document.getElementById("plan"),
+      shell: document.querySelector("#plan .plan-shell"),
       toc: document.querySelector("#plan .plan-toc"),
       tocList: document.getElementById("planTocList"),
       preview: document.getElementById("planPreview")
@@ -25,12 +28,24 @@
       }
 
       #plan .plan-toc.is-following {
-        position: sticky !important;
+        position: fixed !important;
         top: ${TOP_OFFSET}px !important;
+        left: var(--plan-toc-left) !important;
+        width: var(--plan-toc-width) !important;
         max-height: calc(100vh - ${TOP_OFFSET * 2}px) !important;
         overflow: auto !important;
-        z-index: 5;
-        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+        z-index: 8;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.10);
+      }
+
+      #plan .plan-toc-spacer {
+        display: none;
+      }
+
+      #plan .plan-toc-spacer.is-active {
+        display: block;
+        width: var(--plan-toc-width);
+        min-height: 1px;
       }
 
       #plan .plan-view {
@@ -52,24 +67,76 @@
         #plan .plan-toc.is-following {
           position: relative !important;
           top: 0 !important;
+          left: auto !important;
+          width: auto !important;
           max-height: 290px !important;
           box-shadow: none;
+        }
+
+        #plan .plan-toc-spacer.is-active {
+          display: none;
         }
       }
     `;
     document.head.appendChild(style);
   }
 
+  function ensureSpacer() {
+    const { shell, toc } = getPlanElements();
+    if (!shell || !toc) return null;
+
+    let spacer = document.getElementById("planTocSpacer");
+    if (!spacer) {
+      spacer = document.createElement("div");
+      spacer.id = "planTocSpacer";
+      spacer.className = "plan-toc-spacer";
+      shell.insertBefore(spacer, toc);
+    }
+    return spacer;
+  }
+
+  function resetToc() {
+    const { toc } = getPlanElements();
+    const spacer = document.getElementById("planTocSpacer");
+    if (toc) {
+      toc.classList.remove("is-following");
+      toc.style.removeProperty("--plan-toc-left");
+      toc.style.removeProperty("--plan-toc-width");
+    }
+    if (spacer) {
+      spacer.classList.remove("is-active");
+      spacer.style.removeProperty("--plan-toc-width");
+    }
+  }
+
   function updateStickyToc() {
-    const { plan, toc } = getPlanElements();
-    if (!plan || !toc) return;
+    const { plan, shell, toc } = getPlanElements();
+    const spacer = ensureSpacer();
+    if (!plan || !shell || !toc || !spacer) return;
 
     const planIsActive = plan.classList.contains("active");
     if (!planIsActive || window.innerWidth < DESKTOP_BREAKPOINT) {
-      toc.classList.remove("is-following");
+      resetToc();
       return;
     }
 
+    const planRect = plan.getBoundingClientRect();
+    const shellRect = shell.getBoundingClientRect();
+    const tocRect = toc.classList.contains("is-following") ? spacer.getBoundingClientRect() : toc.getBoundingClientRect();
+    const shouldFloat = planRect.top < TOP_OFFSET && planRect.bottom > TOP_OFFSET + 180;
+
+    if (!shouldFloat) {
+      resetToc();
+      return;
+    }
+
+    const width = Math.max(MIN_TOC_WIDTH, Math.min(tocRect.width || 260, MAX_TOC_WIDTH));
+    const left = Math.max(8, shellRect.left);
+
+    toc.style.setProperty("--plan-toc-left", `${left}px`);
+    toc.style.setProperty("--plan-toc-width", `${width}px`);
+    spacer.style.setProperty("--plan-toc-width", `${width}px`);
+    spacer.classList.add("is-active");
     toc.classList.add("is-following");
   }
 
@@ -118,6 +185,7 @@
 
   function install() {
     ensureStyles();
+    ensureSpacer();
     update();
     window.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update, { passive: true });
