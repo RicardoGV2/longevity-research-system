@@ -29,21 +29,12 @@
   }
 
   function closeLists(state) {
-    if (state.inUl) {
-      state.html += "</ul>";
-      state.inUl = false;
-    }
-    if (state.inOl) {
-      state.html += "</ol>";
-      state.inOl = false;
-    }
+    if (state.inUl) { state.html += "</ul>"; state.inUl = false; }
+    if (state.inOl) { state.html += "</ol>"; state.inOl = false; }
   }
 
   function closeTable(state) {
-    if (state.inTable) {
-      state.html += "</tbody></table>";
-      state.inTable = false;
-    }
+    if (state.inTable) { state.html += "</tbody></table>"; state.inTable = false; }
   }
 
   function markdownToHtml(markdown) {
@@ -98,10 +89,7 @@
         const cells = rawCells
           .map((cell) => cell.trim())
           .filter((cell, index) => !(index === 0 && cell === "") && !(index === rawCells.length - 1 && cell === ""));
-        if (!state.inTable) {
-          state.html += "<table><tbody>";
-          state.inTable = true;
-        }
+        if (!state.inTable) { state.html += "<table><tbody>"; state.inTable = true; }
         state.html += `<tr>${cells.map((cell) => `<td>${inlineMarkdown(cell)}</td>`).join("")}</tr>`;
         return;
       }
@@ -109,22 +97,14 @@
       closeTable(state);
 
       if (trimmed.startsWith("- ")) {
-        if (!state.inUl) {
-          closeLists(state);
-          state.html += "<ul>";
-          state.inUl = true;
-        }
+        if (!state.inUl) { closeLists(state); state.html += "<ul>"; state.inUl = true; }
         state.html += `<li>${inlineMarkdown(trimmed.slice(2))}</li>`;
         return;
       }
 
       const ordered = trimmed.match(/^\d+\.\s+(.+)$/);
       if (ordered) {
-        if (!state.inOl) {
-          closeLists(state);
-          state.html += "<ol>";
-          state.inOl = true;
-        }
+        if (!state.inOl) { closeLists(state); state.html += "<ol>"; state.inOl = true; }
         state.html += `<li>${inlineMarkdown(ordered[1])}</li>`;
         return;
       }
@@ -201,8 +181,8 @@
         link.addEventListener("click", (event) => {
           event.preventDefault();
           const anchor = link.dataset.anchor;
-          if (currentMode === "markdown") scrollEditorToAnchor(anchor);
-          else scrollPreviewToAnchor(anchor);
+          if (currentMode === "markdown") scrollEditorToAnchor(anchor, true);
+          else scrollPreviewToAnchor(anchor, true);
           history.replaceState(null, "", `#${anchor}`);
         });
       });
@@ -213,44 +193,78 @@
         event.preventDefault();
         const anchor = link.dataset.anchor;
         history.replaceState(null, "", `#${anchor}`);
-        scrollPreviewToAnchor(anchor);
+        scrollPreviewToAnchor(anchor, true);
       });
     });
   }
 
+  function activeTocAnchor() {
+    const { tocList } = getElements();
+    return tocList?.querySelector("a.active")?.dataset?.anchor || null;
+  }
+
   function currentAnchor() {
     const { editor, preview } = getElements();
+    renderPlan();
+
     if (currentMode === "preview" && preview) {
-      const visible = [...preview.querySelectorAll("h1,h2,h3,h4")]
-        .filter((heading) => heading.getBoundingClientRect().top <= 160)
+      const active = activeTocAnchor();
+      if (active) return active;
+
+      const headings = [...preview.querySelectorAll("h1,h2,h3,h4")];
+      if (!headings.length) return lastHeadings[0]?.id || null;
+
+      const targetY = Math.min(240, window.innerHeight * 0.35);
+      const beforeTarget = headings
+        .filter((heading) => heading.getBoundingClientRect().top <= targetY)
         .pop();
-      return visible?.id || lastHeadings[0]?.id || null;
+      if (beforeTarget?.id) return beforeTarget.id;
+
+      const closest = headings
+        .map((heading) => ({ id: heading.id, distance: Math.abs(heading.getBoundingClientRect().top - targetY) }))
+        .sort((a, b) => a.distance - b.distance)[0];
+      return closest?.id || lastHeadings[0]?.id || null;
     }
 
     if (editor) {
       const before = editor.value.slice(0, editor.selectionStart || 0);
       const line = before.split("\n").length - 1;
-      return lastHeadings.filter((h) => h.lineIndex <= line).pop()?.id || lastHeadings[0]?.id || null;
+      return lastHeadings.filter((h) => h.lineIndex <= line).pop()?.id || activeTocAnchor() || lastHeadings[0]?.id || null;
     }
-    return null;
+    return activeTocAnchor() || lastHeadings[0]?.id || null;
   }
 
-  function scrollPreviewToAnchor(anchor) {
+  function scrollPreviewToAnchor(anchor, instant = false) {
     if (!anchor) return;
     const element = document.getElementById(anchor);
-    if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (element) element.scrollIntoView({ behavior: instant ? "auto" : "smooth", block: "start" });
   }
 
-  function scrollEditorToAnchor(anchor) {
+  function scrollEditorToAnchor(anchor, instant = true) {
     const { editor } = getElements();
     if (!editor || !anchor) return;
-    const heading = lastHeadings.find((h) => h.id === anchor);
+    renderPlan();
+    const heading = lastHeadings.find((h) => h.id === anchor) || lastHeadings[0];
     if (!heading) return;
+
     const lines = editor.value.split("\n");
     const start = lines.slice(0, heading.lineIndex).join("\n").length + (heading.lineIndex > 0 ? 1 : 0);
-    editor.focus({ preventScroll: true });
-    editor.setSelectionRange(start, start);
-    editor.scrollTop = Math.max(0, heading.lineIndex * 21 - 80);
+    const estimatedLineHeight = 22;
+    const targetEditorTop = Math.max(0, heading.lineIndex * estimatedLineHeight - 110);
+
+    function apply() {
+      editor.focus({ preventScroll: true });
+      editor.setSelectionRange(start, start);
+      editor.scrollTop = targetEditorTop;
+    }
+
+    apply();
+    window.requestAnimationFrame(() => {
+      apply();
+      const pageTop = Math.max(0, window.scrollY + editor.getBoundingClientRect().top - 130);
+      window.scrollTo({ top: pageTop, behavior: instant ? "auto" : "smooth" });
+      window.setTimeout(apply, 60);
+    });
   }
 
   function setMode(mode, anchor = null) {
@@ -259,6 +273,7 @@
     const previewTitle = document.getElementById("planPreviewTitle");
     if (!editor || !preview) return;
 
+    const targetAnchor = anchor || currentAnchor();
     currentMode = mode;
     renderPlan();
 
@@ -270,7 +285,7 @@
       previewTitle?.classList.add("is-hidden");
       if (saveBtn) saveBtn.style.display = "inline-flex";
       if (toggleBtn) toggleBtn.textContent = "Show preview";
-      setTimeout(() => scrollEditorToAnchor(anchor), 60);
+      setTimeout(() => scrollEditorToAnchor(targetAnchor, true), 80);
     } else {
       editor.classList.add("is-hidden");
       preview.classList.remove("is-hidden");
@@ -278,7 +293,7 @@
       previewTitle?.classList.remove("is-hidden");
       if (saveBtn) saveBtn.style.display = "none";
       if (toggleBtn) toggleBtn.textContent = "Edit Markdown";
-      setTimeout(() => scrollPreviewToAnchor(anchor), 60);
+      setTimeout(() => scrollPreviewToAnchor(targetAnchor, true), 80);
     }
   }
 
