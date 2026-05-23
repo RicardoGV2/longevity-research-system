@@ -1,8 +1,18 @@
 (() => {
   const STORAGE_KEY = "longevityResearchSystem.v0.1";
-  const MIGRATION_KEY = "longevityResearchSystem.analysesRefine.v0.3";
-  const RELOAD_KEY = "longevityResearchSystem.analysesRefineReload.v0.3";
-  const PRIORITY_KIND_LABELS = new Set(["body measurement", "lab test", "clinical study", "functional test"]);
+  const MIGRATION_KEY = "longevityResearchSystem.analysesRefine.v0.5";
+  const RELOAD_KEY = "longevityResearchSystem.analysesRefineReload.v0.5";
+  const PRIORITY_KIND_LABELS = new Set(["lab test", "clinical study", "functional test"]);
+
+  const BASIC_DATA_RULES = new Map([
+    ["age", { renameTo: "Birth date", kindLabel: "Birth date", valueType: "date", hidePriority: true, hideNotes: true, hideActionability: true, hideTargetDate: true, clearNotes: true }],
+    ["birth date", { renameTo: "Birth date", kindLabel: "Birth date", valueType: "date", hidePriority: true, hideNotes: true, hideActionability: true, hideTargetDate: true, clearNotes: true }],
+    ["height", { hidePriority: true, hideNotes: true, hideActionability: true, hideTargetDate: true, clearNotes: true }],
+    ["actual weight (scale)", { renameTo: "Weight", hidePriority: true, hideNotes: true, hideActionability: true, hideTargetDate: true, clearNotes: true }],
+    ["weight", { renameTo: "Weight", hidePriority: true, hideNotes: true, hideActionability: true, hideTargetDate: true, clearNotes: true }],
+    ["waist circumference", { hidePriority: true, hideNotes: true, hideActionability: true, hideTargetDate: true, clearNotes: true }],
+    ["hip circumference", { hidePriority: true, hideNotes: true, hideActionability: true, hideTargetDate: true, clearNotes: true }]
+  ]);
 
   function normalize(value) {
     return String(value || "").trim().toLowerCase();
@@ -36,54 +46,93 @@
       .replace(/\bedad\b/g, "fecha de nacimiento / edad calculada");
   }
 
+  function ruleForItemName(name) {
+    return BASIC_DATA_RULES.get(normalize(name)) || null;
+  }
+
+  function cleanItemFields(item, rule) {
+    let touched = false;
+    if (!rule) return false;
+
+    if (rule.renameTo && item.name !== rule.renameTo) {
+      item.name = rule.renameTo;
+      touched = true;
+    }
+    if (rule.hidePriority && item.priority !== "none") {
+      item.priority = "none";
+      touched = true;
+    }
+    if (rule.hideNotes && item.notes) {
+      item.notes = "";
+      touched = true;
+    }
+    if (rule.hideActionability && item.actionability) {
+      item.actionability = "";
+      touched = true;
+    }
+    if (rule.hideTargetDate && item.targetDate) {
+      item.targetDate = "";
+      touched = true;
+    }
+    if (normalize(item.name) === "birth date" && item.kind !== "personal_fact") {
+      item.kind = "personal_fact";
+      touched = true;
+    }
+    return touched;
+  }
+
+  function migrateAppStateObject(appState) {
+    if (!appState) return false;
+    let touched = false;
+
+    if (appState?.analyses?.categories && appState?.analyses?.items) {
+      const qCategory = appState.analyses.categories.find((cat) => String(cat.code || "").toUpperCase() === "Q" && !cat.custom);
+      if (qCategory) {
+        appState.analyses.categories = appState.analyses.categories.filter((cat) => cat.id !== qCategory.id);
+        appState.analyses.items = appState.analyses.items.filter((item) => item.categoryId !== qCategory.id);
+        touched = true;
+      }
+
+      appState.analyses.items.forEach((item) => {
+        const rule = ruleForItemName(item.name);
+        if (cleanItemFields(item, rule)) touched = true;
+      });
+    }
+
+    if (appState?.planMarkdown) {
+      const migratedPlan = replaceAgeTextInPlan(replacePlanQSection(appState.planMarkdown));
+      if (migratedPlan !== appState.planMarkdown) {
+        appState.planMarkdown = migratedPlan;
+        touched = true;
+      }
+    }
+
+    if (touched) appState.updatedAt = new Date().toISOString();
+    return touched;
+  }
+
   function migrateLocalState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return false;
-      const state = JSON.parse(raw);
-      let touched = false;
-
-      if (state?.analyses?.categories && state?.analyses?.items) {
-        const qCategory = state.analyses.categories.find((cat) => String(cat.code || "").toUpperCase() === "Q" && !cat.custom);
-        if (qCategory) {
-          state.analyses.categories = state.analyses.categories.filter((cat) => cat.id !== qCategory.id);
-          state.analyses.items = state.analyses.items.filter((item) => item.categoryId !== qCategory.id);
-          touched = true;
-        }
-
-        state.analyses.items.forEach((item) => {
-          if (normalize(item.name) === "age") {
-            item.name = "Birth date";
-            item.kind = "personal_fact";
-            item.priority = "none";
-            item.notes = "";
-            item.actionability = "";
-            item.targetDate = "";
-            touched = true;
-          }
-          if (normalize(item.name) === "height" && item.priority !== "none") {
-            item.priority = "none";
-            touched = true;
-          }
-        });
-      }
-
-      if (state?.planMarkdown) {
-        const migratedPlan = replaceAgeTextInPlan(replacePlanQSection(state.planMarkdown));
-        if (migratedPlan !== state.planMarkdown) {
-          state.planMarkdown = migratedPlan;
-          touched = true;
-        }
-      }
-
-      if (touched) {
-        state.updatedAt = new Date().toISOString();
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      }
+      const appState = JSON.parse(raw);
+      const touched = migrateAppStateObject(appState);
+      if (touched) localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
       localStorage.setItem(MIGRATION_KEY, new Date().toISOString());
       return touched;
     } catch (error) {
       console.warn("Analyses refinement migration failed", error);
+      return false;
+    }
+  }
+
+  function migrateRuntimeState() {
+    try {
+      if (typeof state === "undefined" || !state) return false;
+      const touched = migrateAppStateObject(state);
+      if (touched) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      return touched;
+    } catch {
       return false;
     }
   }
@@ -105,6 +154,8 @@
   }
 
   function shouldShowPriority(row) {
+    const rule = ruleForItemName(itemNameFromRow(row));
+    if (rule?.hidePriority) return false;
     return PRIORITY_KIND_LABELS.has(itemKindFromRow(row));
   }
 
@@ -112,30 +163,39 @@
     return itemNameFromRow(row) === "age" || itemNameFromRow(row) === "birth date";
   }
 
-  function patchBirthDateRow(row) {
-    const nameButton = row.querySelector(".item-name");
-    if (nameButton) nameButton.textContent = "Birth date";
+  function hideLabelByText(row, pattern) {
+    row.querySelectorAll("label").forEach((label) => {
+      if (pattern.test(label.textContent || "")) label.classList.add("hidden");
+    });
+  }
+
+  function patchBasicDataRow(row) {
+    const title = row.querySelector(".item-name");
+    const rule = ruleForItemName(title?.textContent);
+    if (!rule) return;
+
+    if (rule.renameTo && title) title.textContent = rule.renameTo;
 
     const kind = row.querySelector(".kind-chip");
-    if (kind) kind.textContent = "Birth date";
+    if (rule.kindLabel && kind) kind.textContent = rule.kindLabel;
 
-    row.querySelector(".priority")?.classList.add("hidden");
-
-    row.querySelectorAll("label.full-width").forEach((label) => {
-      if (/notes/i.test(label.textContent || "")) label.classList.add("hidden");
-    });
-    row.querySelectorAll("textarea[data-field='notes']").forEach((textarea) => {
-      textarea.closest("label")?.classList.add("hidden");
-    });
+    if (rule.hidePriority) row.querySelector(".priority")?.classList.add("hidden");
+    if (rule.hideActionability) hideLabelByText(row, /Actionability/i);
+    if (rule.hideTargetDate) hideLabelByText(row, /Target date/i);
+    if (rule.hideNotes) hideLabelByText(row, /^\s*Notes\s*/i);
 
     const valueInput = row.querySelector(".add-update-form input[name='value']");
-    if (valueInput) {
-      valueInput.type = "date";
-      valueInput.placeholder = "Birth date";
+    if (valueInput && rule.valueType) {
+      valueInput.type = rule.valueType;
+      valueInput.placeholder = rule.renameTo || title?.textContent || "Value";
     }
 
     const updateNotes = row.querySelector(".add-update-form input[name='notes']");
-    if (updateNotes) updateNotes.classList.add("hidden");
+    if (updateNotes && rule.hideNotes) updateNotes.classList.add("hidden");
+  }
+
+  function patchBirthDateRow(row) {
+    patchBasicDataRow(row);
 
     row.querySelectorAll(".computed-age").forEach((el) => el.remove());
     const latest = row.querySelector(".latest-update");
@@ -194,6 +254,7 @@
   function patchRows() {
     document.querySelectorAll(".analysis-item").forEach((row) => {
       if (isBirthDateRow(row)) patchBirthDateRow(row);
+      else patchBasicDataRow(row);
       hideUnneededPriority(row);
     });
   }
@@ -327,20 +388,42 @@
     document.head.appendChild(style);
   }
 
+  migrateLocalState();
+  ensureStyles();
+  patchUi();
+
+  const earlyObserver = new MutationObserver(() => {
+    migrateRuntimeState();
+    patchUi();
+  });
+  earlyObserver.observe(document.documentElement, { childList: true, subtree: true });
+
+  const fastGuard = setInterval(() => {
+    migrateLocalState();
+    migrateRuntimeState();
+    patchUi();
+  }, 60);
+  setTimeout(() => clearInterval(fastGuard), 5000);
+
   maybeReloadAfterMigration();
 
   document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => {
       maybeReloadAfterMigration();
       ensureStyles();
+      migrateRuntimeState();
       patchUi();
       setInterval(() => {
         migrateLocalState();
+        migrateRuntimeState();
         patchUi();
       }, 1000);
       const root = document.body;
-      const observer = new MutationObserver(() => requestAnimationFrame(patchUi));
+      const observer = new MutationObserver(() => requestAnimationFrame(() => {
+        migrateRuntimeState();
+        patchUi();
+      }));
       observer.observe(root, { childList: true, subtree: true });
-    }, 1400);
+    }, 700);
   });
 })();
