@@ -79,6 +79,7 @@
         overflow-y: auto;
         overflow-x: hidden;
         padding-right: 3px;
+        overscroll-behavior: contain;
       }
 
       #plan .plan-toc a.active {
@@ -154,7 +155,18 @@
       return;
     }
 
+    const planRect = plan.getBoundingClientRect();
     const shellRect = shell.getBoundingClientRect();
+    const anchorRect = toc.classList.contains("is-following")
+      ? spacer.getBoundingClientRect()
+      : toc.getBoundingClientRect();
+
+    const shouldFollow = anchorRect.top <= TOP_OFFSET && planRect.bottom > TOP_OFFSET + 220;
+    if (!shouldFollow) {
+      resetToc();
+      return;
+    }
+
     const widthSource = toc.classList.contains("is-following") ? spacer.getBoundingClientRect() : toc.getBoundingClientRect();
     const width = Math.max(MIN_TOC_WIDTH, Math.min(widthSource.width || 260, MAX_TOC_WIDTH));
     const left = Math.max(8, shellRect.left);
@@ -192,11 +204,8 @@
 
     if (!isAbove && !isBelow) return;
 
-    const targetTop = activeLink.offsetTop - tocList.clientHeight * 0.45;
-    tocList.scrollTo({
-      top: Math.max(0, targetTop),
-      behavior: "smooth"
-    });
+    const targetTop = activeLink.offsetTop - tocList.clientHeight * 0.40;
+    tocList.scrollTop = Math.max(0, targetTop);
   }
 
   function updateActiveLink() {
