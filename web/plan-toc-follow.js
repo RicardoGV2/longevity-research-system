@@ -5,7 +5,6 @@
   function getPlanElements() {
     return {
       plan: document.getElementById("plan"),
-      shell: document.querySelector("#plan .plan-shell"),
       toc: document.querySelector("#plan .plan-toc"),
       tocList: document.getElementById("planTocList"),
       preview: document.getElementById("planPreview")
@@ -17,17 +16,30 @@
     const style = document.createElement("style");
     style.id = "planTocFollowStyles";
     style.textContent = `
-      .plan-toc.is-following {
-        position: fixed !important;
-        top: ${TOP_OFFSET}px !important;
-        left: var(--plan-toc-left) !important;
-        width: var(--plan-toc-width) !important;
-        max-height: calc(100vh - ${TOP_OFFSET * 2}px) !important;
-        z-index: 40;
-        box-shadow: 0 12px 36px rgba(15, 23, 42, 0.12);
+      #plan .plan-shell {
+        align-items: start;
       }
 
-      .plan-toc a.active {
+      #plan .plan-toc {
+        align-self: start;
+      }
+
+      #plan .plan-toc.is-following {
+        position: sticky !important;
+        top: ${TOP_OFFSET}px !important;
+        max-height: calc(100vh - ${TOP_OFFSET * 2}px) !important;
+        overflow: auto !important;
+        z-index: 5;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+      }
+
+      #plan .plan-view {
+        min-width: 0;
+        position: relative;
+        z-index: 1;
+      }
+
+      #plan .plan-toc a.active {
         background: #e8efff;
         color: #1d4ed8;
         font-weight: 850;
@@ -37,11 +49,9 @@
       }
 
       @media (max-width: 780px) {
-        .plan-toc.is-following {
+        #plan .plan-toc.is-following {
           position: relative !important;
           top: 0 !important;
-          left: auto !important;
-          width: auto !important;
           max-height: 290px !important;
           box-shadow: none;
         }
@@ -50,38 +60,16 @@
     document.head.appendChild(style);
   }
 
-  function resetToc(toc) {
-    if (!toc) return;
-    toc.classList.remove("is-following");
-    toc.style.removeProperty("--plan-toc-left");
-    toc.style.removeProperty("--plan-toc-width");
-  }
-
   function updateStickyToc() {
-    const { plan, shell, toc } = getPlanElements();
-    if (!plan || !shell || !toc) return;
+    const { plan, toc } = getPlanElements();
+    if (!plan || !toc) return;
 
     const planIsActive = plan.classList.contains("active");
     if (!planIsActive || window.innerWidth < DESKTOP_BREAKPOINT) {
-      resetToc(toc);
+      toc.classList.remove("is-following");
       return;
     }
 
-    const planRect = plan.getBoundingClientRect();
-    const shellRect = shell.getBoundingClientRect();
-    const shouldFloat = planRect.top < TOP_OFFSET && planRect.bottom > TOP_OFFSET + 180;
-
-    if (!shouldFloat) {
-      resetToc(toc);
-      return;
-    }
-
-    const normalWidth = toc.classList.contains("is-following")
-      ? parseFloat(toc.style.getPropertyValue("--plan-toc-width")) || 260
-      : toc.getBoundingClientRect().width;
-
-    toc.style.setProperty("--plan-toc-left", `${Math.max(8, shellRect.left)}px`);
-    toc.style.setProperty("--plan-toc-width", `${Math.max(190, Math.min(normalWidth, 280))}px`);
     toc.classList.add("is-following");
   }
 
@@ -112,8 +100,8 @@
     });
 
     const active = tocList.querySelector("a.active");
-    if (active) {
-      const toc = active.closest(".plan-toc");
+    const toc = active?.closest(".plan-toc");
+    if (active && toc) {
       const activeRect = active.getBoundingClientRect();
       const tocRect = toc.getBoundingClientRect();
       const isOutside = activeRect.top < tocRect.top + 20 || activeRect.bottom > tocRect.bottom - 20;
