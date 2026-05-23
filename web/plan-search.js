@@ -23,6 +23,76 @@
     };
   }
 
+  function ensureStyles() {
+    if (document.getElementById("planSearchStyles")) return;
+    const style = document.createElement("style");
+    style.id = "planSearchStyles";
+    style.textContent = `
+      #plan .plan-search-box {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: #fbfcff;
+        padding: 12px;
+        margin: 12px 0 16px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto auto;
+        gap: 8px;
+        align-items: center;
+      }
+      #plan .plan-search-box input {
+        min-width: 0;
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px 12px;
+        font: inherit;
+      }
+      #plan .plan-search-box button {
+        border-radius: 12px;
+        padding: 9px 12px;
+      }
+      #plan .plan-search-status {
+        grid-column: 1 / -1;
+        color: var(--muted);
+        font-size: 0.86rem;
+        font-weight: 650;
+      }
+      mark.plan-search-mark {
+        background: #fde68a;
+        color: #533f03;
+        border-radius: 4px;
+        padding: 0 2px;
+      }
+      mark.plan-search-mark.active {
+        background: #f97316;
+        color: #fff7ed;
+        outline: 2px solid #fed7aa;
+      }
+      @media (max-width: 560px) {
+        #plan .plan-search-box { grid-template-columns: 1fr 1fr 1fr; }
+        #plan .plan-search-box input { grid-column: 1 / -1; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function ensureUi() {
+    const { plan } = getEls();
+    if (!plan || document.getElementById("planSearchInput")) return;
+    ensureStyles();
+    const search = document.createElement("div");
+    search.className = "plan-search-box";
+    search.innerHTML = `
+      <input id="planSearchInput" type="search" placeholder="Search inside the plan..." autocomplete="off" />
+      <button id="planSearchPrev" class="secondary-dark" type="button">Previous</button>
+      <button id="planSearchNext" type="button">Next</button>
+      <button id="planSearchClear" class="secondary-dark" type="button">Clear</button>
+      <div id="planSearchStatus" class="plan-search-status">Search inside the plan.</div>
+    `;
+    const note = plan.querySelector(".plan-help") || plan.querySelector(".section-head");
+    note?.insertAdjacentElement("afterend", search);
+  }
+
   function removeMarks(root) {
     if (!root) return;
     root.querySelectorAll("mark.plan-search-mark").forEach((mark) => {
@@ -51,6 +121,7 @@
     const walker = document.createTreeWalker(preview, NodeFilter.SHOW_TEXT, {
       acceptNode(node) {
         if (isIgnoredTextNode(node)) return NodeFilter.FILTER_REJECT;
+        regex.lastIndex = 0;
         return regex.test(node.nodeValue || "") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
       }
     });
@@ -91,10 +162,7 @@
     let match;
     while ((match = regex.exec(value)) !== null) {
       const line = value.slice(0, match.index).split("\n").length;
-      const lineStart = value.lastIndexOf("\n", match.index - 1) + 1;
-      const lineEnd = value.indexOf("\n", match.index);
-      const snippet = value.slice(lineStart, lineEnd === -1 ? value.length : lineEnd).trim();
-      matches.push({ index: match.index, length: match[0].length, line, snippet });
+      matches.push({ index: match.index, length: match[0].length, line });
     }
     return matches;
   }
@@ -102,16 +170,9 @@
   function updateStatus() {
     const { status } = getEls();
     if (!status) return;
-    if (!query) {
-      status.textContent = "Search inside the plan.";
-      return;
-    }
-    if (query.length < MIN_QUERY) {
-      status.textContent = `Type at least ${MIN_QUERY} characters.`;
-      return;
-    }
-    const total = editorMatches.length;
-    status.textContent = total ? `${currentIndex + 1} / ${total} matches` : "No matches found.";
+    if (!query) status.textContent = "Search inside the plan.";
+    else if (query.length < MIN_QUERY) status.textContent = `Type at least ${MIN_QUERY} characters.`;
+    else status.textContent = editorMatches.length ? `${currentIndex + 1} / ${editorMatches.length} matches` : "No matches found.";
   }
 
   function isMarkdownMode() {
@@ -124,8 +185,7 @@
     if (!editor || !match) return;
     editor.focus({ preventScroll: true });
     editor.setSelectionRange(match.index, match.index + match.length);
-    const approxLineHeight = 22;
-    editor.scrollTop = Math.max(0, (match.line - 1) * approxLineHeight - 90);
+    editor.scrollTop = Math.max(0, (match.line - 1) * 22 - 90);
     window.scrollTo({ top: Math.max(0, window.scrollY + editor.getBoundingClientRect().top - 135), behavior: "auto" });
   }
 
@@ -171,6 +231,7 @@
   }
 
   function install() {
+    ensureUi();
     const { input, prev, next, clear, preview, editor } = getEls();
     if (!input || input.dataset.planSearchInstalled) return;
     input.dataset.planSearchInstalled = "1";
@@ -200,5 +261,5 @@
     updateStatus();
   }
 
-  document.addEventListener("DOMContentLoaded", () => setTimeout(install, 900));
+  document.addEventListener("DOMContentLoaded", () => setTimeout(install, 1100));
 })();
