@@ -60,6 +60,14 @@
         z-index: 1;
       }
 
+      #plan .plan-toc-title {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #fbfcff;
+        padding-bottom: 8px;
+      }
+
       #plan .plan-toc a.active {
         background: #e8efff;
         color: #1d4ed8;
@@ -164,17 +172,6 @@
       const isActive = currentId && link.dataset.anchor === currentId;
       link.classList.toggle("active", Boolean(isActive));
     });
-
-    const active = tocList.querySelector("a.active");
-    const toc = active?.closest(".plan-toc");
-    if (active && toc) {
-      const activeRect = active.getBoundingClientRect();
-      const tocRect = toc.getBoundingClientRect();
-      const isOutside = activeRect.top < tocRect.top + 20 || activeRect.bottom > tocRect.bottom - 20;
-      if (isOutside) {
-        active.scrollIntoView({ block: "center", behavior: "smooth" });
-      }
-    }
   }
 
   function update() {
