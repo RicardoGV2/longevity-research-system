@@ -9,6 +9,7 @@
 - 2. Principio rector
 - 3. Criterios para tomar decisiones
 - 4. Categorías principales de análisis
+- Mapa ideal de mediciones, pruebas, aparatos y estudios
 - 5. Riesgos generales del proyecto
 - 6. Métricas iniciales propuestas
 - 7. Preguntas pendientes
@@ -31,7 +32,7 @@ Este documento debe usarse como un sistema vivo. Primero se define el modelo ide
 2. Registrar comida real durante 7 días.
 3. Crear registro diario simple.
 4. Medir peso, cintura y presión arterial si se puede.
-5. Clasificar mediciones ideales.
+5. Revisar el mapa ideal de mediciones en su propia pestaña.
 6. Elegir primeros estudios clínicos ideales.
 7. Elegir una primera receta para analizar.
 8. Definir primeras hipótesis de investigación.
@@ -83,6 +84,8 @@ Cada decisión futura del plan deberá cumplir con estos criterios:
 ---
 
 ## 4. Categorías principales de análisis
+
+Estas categorías alimentan la pestaña **Analyses**. El mapa de mediciones, aparatos y estudios ya no se trata como una categoría de análisis; ahora vive en su propia pestaña **Measurement Map**.
 
 ### A. Punto de partida físico y biológico
 
@@ -148,9 +151,15 @@ Azúcar añadida, azúcares libres, bebidas azucaradas, jugos, postres, harinas 
 
 Alimento individual → combinación simple → receta completa → horario → orden de consumo → respuesta personal → ajuste.
 
-### Q. Mapa ideal de mediciones, pruebas, aparatos y estudios
+---
 
-Báscula, cinta métrica, presión arterial, oxímetro, wearable, banda de pecho, glucómetro, CGM, ECG, prueba de esfuerzo, CPET/VO2 max, DEXA, estudio de sueño, análisis de sangre, pruebas funcionales y mediciones ambientales.
+## Mapa ideal de mediciones, pruebas, aparatos y estudios
+
+El mapa ideal de mediciones ya no forma parte de las categorías A–P de análisis. Para evitar duplicados en **Analyses**, se gestiona como una sección independiente y como su propia pestaña dentro de la app: **Measurement Map**.
+
+**Incluye:** báscula, cinta métrica, presión arterial, oxímetro, wearable, banda de pecho, glucómetro, CGM, ECG, prueba de esfuerzo, CPET/VO2 max, DEXA, estudio de sueño, análisis de sangre, pruebas funcionales y mediciones ambientales.
+
+**Uso:** comparar dispositivos, añadir fotos, definir cómo se usan, registrar limitaciones, clasificar prioridad/costo/viabilidad y decidir qué pruebas sí valen la pena.
 
 ---
 
