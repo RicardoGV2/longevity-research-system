@@ -1015,25 +1015,54 @@ function globalStats() {
 
 function ensureAutoSeed() {
   if (!state.analyses) state.analyses = { categories: [], items: [] };
-  if (state.analyses.categories.length > 0) {
-    // Backfill: ensure every existing item has a kind matching the seed
-    const seedByCatName = new Map();
-    for (const s of ANALYSES_SEED_CATALOG) seedByCatName.set(s.name, new Map(s.items.map((it) => [it.name.toLowerCase(), it.kind])));
-    let backfilled = 0;
-    for (const cat of state.analyses.categories) {
-      const seedMap = seedByCatName.get(cat.name);
-      if (!seedMap) continue;
-      for (const item of state.analyses.items.filter((i) => i.categoryId === cat.id)) {
-        const k = seedMap.get(item.name.toLowerCase());
-        if (k && item.kind !== k) { item.kind = k; backfilled++; }
-        if (!item.kind) { item.kind = "questionnaire"; backfilled++; }
-        if (!Array.isArray(item.updates)) { item.updates = []; backfilled++; }
-      }
-    }
-    if (backfilled > 0) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  if (state.analyses.categories.length === 0) {
+    loadAnalysesSeed();
     return;
   }
-  loadAnalysesSeed();
+
+  // Reconcile existing state with the current seed (English names + kinds).
+  // For each seed category (by code), match existing items positionally and
+  // upgrade their name + kind in place. User-edited fields (status, priority,
+  // notes, target date, cost, invasiveness, actionability, updates) survive
+  // because we mutate the same item objects.
+  let touched = 0;
+  for (const seedCat of ANALYSES_SEED_CATALOG) {
+    let cat = state.analyses.categories.find((c) => c.code === seedCat.code);
+    if (!cat) {
+      cat = { id: uid(), code: seedCat.code, name: seedCat.name, description: seedCat.description, custom: false };
+      state.analyses.categories.push(cat);
+      touched++;
+    } else {
+      if (cat.name !== seedCat.name) { cat.name = seedCat.name; touched++; }
+      if (cat.description !== seedCat.description) { cat.description = seedCat.description; touched++; }
+    }
+
+    const items = state.analyses.items
+      .filter((i) => i.categoryId === cat.id)
+      .sort((a, b) => String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
+
+    for (let i = 0; i < seedCat.items.length; i++) {
+      const seedItem = seedCat.items[i];
+      if (i < items.length) {
+        const it = items[i];
+        if (it.name !== seedItem.name) { it.name = seedItem.name; touched++; }
+        if (it.kind !== seedItem.kind) { it.kind = seedItem.kind; touched++; }
+        if (!Array.isArray(it.updates)) { it.updates = []; touched++; }
+      } else {
+        state.analyses.items.push(createItem(cat.id, seedItem.name, seedItem.kind));
+        touched++;
+      }
+    }
+  }
+
+  // Ensure every item has updates array and a kind even if it's outside the seed
+  for (const item of state.analyses.items) {
+    if (!item.kind) { item.kind = "questionnaire"; touched++; }
+    if (!Array.isArray(item.updates)) { item.updates = []; touched++; }
+  }
+
+  if (touched > 0) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  sortCategoriesByCode();
 }
 
 function setupAnalyses() {
