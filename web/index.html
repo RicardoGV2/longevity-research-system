@@ -44,24 +44,11 @@
         <article class="card"><span>Measurements</span><strong id="measurementCount">0</strong></article>
         <article class="card"><span>Recipe experiments</span><strong id="recipeCount">0</strong></article>
       </div>
-
       <div class="chart-grid">
-        <article class="chart-card">
-          <div class="chart-title">Weight trend</div>
-          <canvas id="weightChart" height="180"></canvas>
-        </article>
-        <article class="chart-card">
-          <div class="chart-title">Sleep hours</div>
-          <canvas id="sleepChart" height="180"></canvas>
-        </article>
-        <article class="chart-card">
-          <div class="chart-title">Energy vs Stress</div>
-          <canvas id="energyStressChart" height="180"></canvas>
-        </article>
-        <article class="chart-card">
-          <div class="chart-title">Pain trend</div>
-          <canvas id="painChart" height="180"></canvas>
-        </article>
+        <article class="chart-card"><div class="chart-title">Weight trend</div><canvas id="weightChart" height="180"></canvas></article>
+        <article class="chart-card"><div class="chart-title">Sleep hours</div><canvas id="sleepChart" height="180"></canvas></article>
+        <article class="chart-card"><div class="chart-title">Energy vs Stress</div><canvas id="energyStressChart" height="180"></canvas></article>
+        <article class="chart-card"><div class="chart-title">Pain trend</div><canvas id="painChart" height="180"></canvas></article>
       </div>
     </section>
 
@@ -94,17 +81,7 @@
         <label>Steps <input name="steps" type="number" inputmode="numeric" /></label>
         <label>Max pain 0-10 <input name="pain" type="number" min="0" max="10" /></label>
         <label>Physical load
-          <select name="physicalLoad">
-            <option value="none">None</option>
-            <option value="strength">Strength</option>
-            <option value="zone2">Cardio zone 2</option>
-            <option value="hiit">HIIT</option>
-            <option value="walking">Walking</option>
-            <option value="mobility">Mobility</option>
-            <option value="sport">Sport</option>
-            <option value="work_physical">Physical work</option>
-            <option value="other">Other</option>
-          </select>
+          <select name="physicalLoad"><option value="none">None</option><option value="strength">Strength</option><option value="zone2">Cardio zone 2</option><option value="hiit">HIIT</option><option value="walking">Walking</option><option value="mobility">Mobility</option><option value="sport">Sport</option><option value="work_physical">Physical work</option><option value="other">Other</option></select>
         </label>
         <label class="full">Notes <textarea name="notes" rows="3"></textarea></label>
         <button type="submit">Save daily log</button>
@@ -115,27 +92,11 @@
       <h2>7-day food log</h2>
       <form id="foodForm" class="form-grid">
         <label>Day
-          <select name="day" required>
-            <option value="day_1">Day 1</option>
-            <option value="day_2">Day 2</option>
-            <option value="day_3">Day 3</option>
-            <option value="day_4">Day 4</option>
-            <option value="day_5">Day 5</option>
-            <option value="day_6">Day 6</option>
-            <option value="day_7">Day 7</option>
-          </select>
+          <select name="day" required><option value="day_1">Day 1</option><option value="day_2">Day 2</option><option value="day_3">Day 3</option><option value="day_4">Day 4</option><option value="day_5">Day 5</option><option value="day_6">Day 6</option><option value="day_7">Day 7</option></select>
         </label>
         <label>Time <input name="time" type="time" /></label>
         <label>Place
-          <select name="place">
-            <option value="home">Home</option>
-            <option value="work">Work/office</option>
-            <option value="restaurant">Restaurant</option>
-            <option value="delivery">Delivery/takeaway</option>
-            <option value="social">Social/family/friends</option>
-            <option value="street">Transport/street</option>
-            <option value="other">Other</option>
-          </select>
+          <select name="place"><option value="home">Home</option><option value="work">Work/office</option><option value="restaurant">Restaurant</option><option value="delivery">Delivery/takeaway</option><option value="social">Social/family/friends</option><option value="street">Transport/street</option><option value="other">Other</option></select>
         </label>
         <label class="full">Food or drink <textarea name="description" rows="3" required></textarea></label>
         <label>Approx. quantity <input name="quantity" type="text" /></label>
@@ -152,16 +113,7 @@
       <form id="measurementForm" class="form-grid">
         <label>Date <input name="date" type="date" required /></label>
         <label>Type
-          <select name="type" required>
-            <option value="waist_cm">Waist cm</option>
-            <option value="hip_cm">Hip cm</option>
-            <option value="blood_pressure_systolic">Blood pressure systolic</option>
-            <option value="blood_pressure_diastolic">Blood pressure diastolic</option>
-            <option value="resting_hr">Resting heart rate</option>
-            <option value="spo2">SpO₂</option>
-            <option value="glucose">Glucose</option>
-            <option value="other">Other</option>
-          </select>
+          <select name="type" required><option value="waist_cm">Waist cm</option><option value="hip_cm">Hip cm</option><option value="blood_pressure_systolic">Blood pressure systolic</option><option value="blood_pressure_diastolic">Blood pressure diastolic</option><option value="resting_hr">Resting heart rate</option><option value="spo2">SpO₂</option><option value="glucose">Glucose</option><option value="other">Other</option></select>
         </label>
         <label>Value <input name="value" type="number" inputmode="decimal" step="0.01" required /></label>
         <label>Unit <input name="unit" type="text" placeholder="cm, mmHg, bpm, %, mmol/L" /></label>
@@ -175,18 +127,7 @@
       <form id="recipeForm" class="form-grid">
         <label>Recipe name <input name="name" type="text" required /></label>
         <label>Expected function
-          <select name="function">
-            <option value="stable_energy">Stable energy</option>
-            <option value="satiety">Satiety</option>
-            <option value="recovery">Recovery</option>
-            <option value="glucose_control">Glucose control</option>
-            <option value="light_dinner">Light dinner</option>
-            <option value="pre_workout">Pre-workout</option>
-            <option value="post_workout">Post-workout</option>
-            <option value="digestive_health">Digestive health</option>
-            <option value="craving_reduction">Craving reduction</option>
-            <option value="other">Other</option>
-          </select>
+          <select name="function"><option value="stable_energy">Stable energy</option><option value="satiety">Satiety</option><option value="recovery">Recovery</option><option value="glucose_control">Glucose control</option><option value="light_dinner">Light dinner</option><option value="pre_workout">Pre-workout</option><option value="post_workout">Post-workout</option><option value="digestive_health">Digestive health</option><option value="craving_reduction">Craving reduction</option><option value="other">Other</option></select>
         </label>
         <label class="full">Ingredients <textarea name="ingredients" rows="3"></textarea></label>
         <label>Protein g <input name="protein" type="number" step="0.1" /></label>
@@ -212,26 +153,20 @@
           <label class="full">Sync file path <input name="path" type="text" value="sync/personal-sync.json" /></label>
           <button type="submit">Save sync settings locally</button>
         </form>
-        <div class="inline-actions sync-actions">
-          <button id="pullGithubBtn" class="secondary-dark" type="button">Pull from GitHub</button>
-          <button id="pushGithubBtn" type="button">Push to GitHub</button>
-        </div>
+        <div class="inline-actions sync-actions"><button id="pullGithubBtn" class="secondary-dark" type="button">Pull from GitHub</button><button id="pushGithubBtn" type="button">Push to GitHub</button></div>
         <p id="syncStatus" class="sync-status">Not synced yet.</p>
       </section>
-
       <h3>Raw local data</h3>
       <p>This is the raw local data currently stored in this browser.</p>
       <pre id="rawData"></pre>
     </section>
   </main>
 
-  <footer>
-    <p>Research MVP. Not medical advice. Data is stored locally unless exported or synced by you to a private data repo.</p>
-  </footer>
+  <footer><p>Research MVP. Not medical advice. Data is stored locally unless exported or synced by you to a private data repo.</p></footer>
 
   <script src="app.js?v=7"></script>
   <script src="sync-guard.js?v=5"></script>
   <script src="plan-ui.js?v=1"></script>
-  <script src="plan-toc-follow.js?v=4"></script>
+  <script src="plan-toc-follow.js?v=6"></script>
 </body>
 </html>
