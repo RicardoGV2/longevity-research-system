@@ -4,6 +4,9 @@
   const MIN_TOC_WIDTH = 190;
   const MAX_TOC_WIDTH = 280;
 
+  let followStartY = null;
+  let lastActiveAnchor = null;
+
   function getPlanElements() {
     return {
       plan: document.getElementById("plan"),
@@ -80,6 +83,7 @@
         overflow-x: hidden;
         padding-right: 3px;
         overscroll-behavior: contain;
+        scroll-behavior: auto !important;
       }
 
       #plan .plan-toc a.active {
@@ -144,6 +148,15 @@
     }
   }
 
+  function calculateFollowStartY() {
+    const { toc } = getPlanElements();
+    const spacer = ensureSpacer();
+    if (!toc || !spacer) return null;
+
+    const anchor = toc.classList.contains("is-following") ? spacer : toc;
+    return window.scrollY + anchor.getBoundingClientRect().top - TOP_OFFSET;
+  }
+
   function updateStickyToc() {
     const { plan, shell, toc } = getPlanElements();
     const spacer = ensureSpacer();
@@ -152,22 +165,24 @@
     const planIsActive = plan.classList.contains("active");
     if (!planIsActive || window.innerWidth < DESKTOP_BREAKPOINT) {
       resetToc();
+      followStartY = null;
       return;
     }
 
-    const planRect = plan.getBoundingClientRect();
-    const shellRect = shell.getBoundingClientRect();
-    const anchorRect = toc.classList.contains("is-following")
-      ? spacer.getBoundingClientRect()
-      : toc.getBoundingClientRect();
+    if (!toc.classList.contains("is-following")) {
+      followStartY = calculateFollowStartY();
+    }
 
-    const shouldFollow = anchorRect.top <= TOP_OFFSET && planRect.bottom > TOP_OFFSET + 220;
+    const planRect = plan.getBoundingClientRect();
+    const shouldFollow = followStartY !== null && window.scrollY >= followStartY && planRect.bottom > TOP_OFFSET + 220;
+
     if (!shouldFollow) {
       resetToc();
       return;
     }
 
-    const widthSource = toc.classList.contains("is-following") ? spacer.getBoundingClientRect() : toc.getBoundingClientRect();
+    const shellRect = shell.getBoundingClientRect();
+    const widthSource = spacer.getBoundingClientRect();
     const width = Math.max(MIN_TOC_WIDTH, Math.min(widthSource.width || 260, MAX_TOC_WIDTH));
     const left = Math.max(8, shellRect.left);
 
@@ -192,19 +207,15 @@
     return current || headings[0];
   }
 
-  function scrollListToActiveLink(activeLink) {
-    const { tocList } = getPlanElements();
-    if (!tocList || !activeLink) return;
+  function jumpListToActiveLink(activeLink) {
+    const { tocList, toc } = getPlanElements();
+    if (!tocList || !toc || !activeLink || !toc.classList.contains("is-following")) return;
 
-    const listRect = tocList.getBoundingClientRect();
-    const activeRect = activeLink.getBoundingClientRect();
-    const padding = 28;
-    const isAbove = activeRect.top < listRect.top + padding;
-    const isBelow = activeRect.bottom > listRect.bottom - padding;
+    const anchor = activeLink.dataset.anchor;
+    if (anchor === lastActiveAnchor) return;
+    lastActiveAnchor = anchor;
 
-    if (!isAbove && !isBelow) return;
-
-    const targetTop = activeLink.offsetTop - tocList.clientHeight * 0.40;
+    const targetTop = activeLink.offsetTop - 72;
     tocList.scrollTop = Math.max(0, targetTop);
   }
 
@@ -222,7 +233,7 @@
       if (isActive) activeLink = link;
     });
 
-    scrollListToActiveLink(activeLink);
+    jumpListToActiveLink(activeLink);
   }
 
   function update() {
@@ -230,16 +241,23 @@
     updateActiveLink();
   }
 
+  function recalculateLater() {
+    followStartY = null;
+    lastActiveAnchor = null;
+    resetToc();
+    setTimeout(update, 120);
+  }
+
   function install() {
     ensureStyles();
     ensureSpacer();
     update();
     window.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update, { passive: true });
-    window.addEventListener("orientationchange", () => setTimeout(update, 250), { passive: true });
+    window.addEventListener("resize", recalculateLater, { passive: true });
+    window.addEventListener("orientationchange", () => setTimeout(recalculateLater, 250), { passive: true });
 
     document.querySelectorAll(".tab").forEach((tab) => {
-      tab.addEventListener("click", () => setTimeout(update, 150));
+      tab.addEventListener("click", () => setTimeout(recalculateLater, 150));
     });
 
     const observer = new MutationObserver(() => setTimeout(update, 80));
