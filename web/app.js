@@ -671,6 +671,8 @@ function render() {
   const editor = document.getElementById("planEditor");
   if (editor) renderMarkdownPreview(editor.value);
 
+  if (typeof schedulePlanBadgeInject === "function") schedulePlanBadgeInject();
+
   const raw = document.getElementById("rawData");
   if (raw) raw.textContent = JSON.stringify(state, null, 2);
 }
@@ -1010,6 +1012,10 @@ function setupAnalyses() {
   // Suggestion bar click handlers
   const suggestion = document.getElementById("planSyncSuggestion");
   if (suggestion) suggestion.addEventListener("click", handleSuggestionClick);
+
+  installPlanBadgeObserver();
+  setTimeout(installPlanBadgeObserver, 800);
+  setTimeout(schedulePlanBadgeInject, 1000);
 }
 
 function switchTab(tabId) {
@@ -1430,6 +1436,83 @@ function handleAnalysesSubmit(event) {
   form.reset();
   saveState();
 }
+
+function injectPlanCategoryBadges() {
+  const preview = document.getElementById("planPreview");
+  if (!preview) return;
+  preview.querySelectorAll(".cat-progress-badge").forEach((el) => el.remove());
+
+  const headings = preview.querySelectorAll("h2, h3");
+  let inAnalyses = false;
+  for (const el of headings) {
+    if (el.tagName === "H2") {
+      const text = el.textContent.trim();
+      inAnalyses = /^4\.\s/.test(text);
+      if (inAnalyses) el.id = el.id || "plan-section-4";
+      continue;
+    }
+    if (!inAnalyses) continue;
+    const text = el.textContent.trim();
+    const match = text.match(/^([A-Za-z])\.\s+/);
+    if (!match) continue;
+    const code = match[1].toUpperCase();
+    el.dataset.analysisCode = code;
+    if (!el.id || !el.id.startsWith("plan-analysis-")) {
+      el.id = `plan-analysis-${code}`;
+    }
+    el.appendChild(makePlanCategoryBadge(code));
+  }
+}
+
+function makePlanCategoryBadge(code) {
+  const category = (state.analyses?.categories || []).find((c) => c.code === code);
+  if (!category) {
+    const span = document.createElement("span");
+    span.className = "cat-progress-badge missing";
+    span.dataset.noCategory = code;
+    span.title = "Sin categoría en la pestaña Análisis";
+    span.textContent = "sin categoría";
+    return span;
+  }
+  const stats = categoryStats(category.id);
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "cat-progress-badge";
+  btn.dataset.catId = category.id;
+  btn.title = "Ver en la pestaña Análisis";
+  btn.textContent = `${stats.done}/${stats.total} hechos`;
+  return btn;
+}
+
+let planBadgeObserverInstalled = false;
+let planBadgeInjectScheduled = false;
+function schedulePlanBadgeInject() {
+  if (planBadgeInjectScheduled) return;
+  planBadgeInjectScheduled = true;
+  requestAnimationFrame(() => {
+    planBadgeInjectScheduled = false;
+    injectPlanCategoryBadges();
+  });
+}
+
+function installPlanBadgeObserver() {
+  if (planBadgeObserverInstalled) return;
+  const preview = document.getElementById("planPreview");
+  if (!preview) return;
+  planBadgeObserverInstalled = true;
+  const observer = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      for (const node of m.addedNodes) {
+        if (node.nodeType !== 1) continue;
+        if (node.classList && node.classList.contains("cat-progress-badge")) return;
+      }
+    }
+    schedulePlanBadgeInject();
+  });
+  observer.observe(preview, { childList: true, subtree: true });
+  schedulePlanBadgeInject();
+}
+
 
 setupTabs();
 setupForms();
