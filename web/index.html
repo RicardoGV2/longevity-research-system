@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Longevity Research System</title>
-  <link rel="stylesheet" href="styles.css?v=7" />
+  <link rel="stylesheet" href="styles.css?v=8" />
 </head>
 <body>
   <header class="app-header">
@@ -30,7 +30,7 @@
     <nav class="tabs" aria-label="Main sections">
       <button class="tab active" data-tab="dashboard">Dashboard</button>
       <button class="tab" data-tab="plan">Plan</button>
-      <button class="tab" data-tab="analyses">Análisis</button>
+      <button class="tab" data-tab="analyses">Analyses</button>
       <button class="tab" data-tab="daily">Daily Log</button>
       <button class="tab" data-tab="food">7-Day Food Log</button>
       <button class="tab" data-tab="measurements">Measurements</button>
@@ -44,7 +44,7 @@
         <article class="card"><span>Food entries</span><strong id="foodCount">0</strong></article>
         <article class="card"><span>Measurements</span><strong id="measurementCount">0</strong></article>
         <article class="card"><span>Recipe experiments</span><strong id="recipeCount">0</strong></article>
-        <article class="card"><span>Análisis hechos</span><strong id="analysesDoneCount">0 / 0</strong></article>
+        <article class="card"><span>Analyses done</span><strong id="analysesDoneCount">0 / 0</strong></article>
       </div>
       <div class="chart-grid">
         <article class="chart-card"><div class="chart-title">Weight trend</div><canvas id="weightChart" height="180"></canvas></article>
@@ -74,20 +74,16 @@
     <section id="analyses" class="panel">
       <div class="section-head">
         <div>
-          <h2>Análisis a realizar</h2>
-          <p>Categorías derivadas de §4 del plan. Marca prioridad, estado y notas. Los cambios se guardan locales y se sincronizan con el resto de los datos.</p>
-        </div>
-        <div class="inline-actions">
-          <button id="loadAnalysesSeedBtn" class="secondary-dark" type="button">Cargar catálogo semilla</button>
-          <button id="addCategoryBtn" type="button">+ Categoría personalizada</button>
+          <h2>Analyses to track</h2>
+          <p>The 17 analysis categories derived from §4 of the plan, with status, priority, target date and per-analysis result history. Stored locally, synced with the rest of the data.</p>
         </div>
       </div>
 
       <div class="analyses-summary" id="analysesSummary">
-        <article class="summary-tile pending"><span>Pendientes</span><strong id="sumPending">0</strong></article>
-        <article class="summary-tile in-progress"><span>En progreso</span><strong id="sumInProgress">0</strong></article>
-        <article class="summary-tile done"><span>Hechos</span><strong id="sumDone">0</strong></article>
-        <article class="summary-tile discarded"><span>Descartados</span><strong id="sumDiscarded">0</strong></article>
+        <article class="summary-tile pending"><span>Pending</span><strong id="sumPending">0</strong></article>
+        <article class="summary-tile in-progress"><span>In progress</span><strong id="sumInProgress">0</strong></article>
+        <article class="summary-tile done"><span>Done</span><strong id="sumDone">0</strong></article>
+        <article class="summary-tile discarded"><span>Discarded</span><strong id="sumDiscarded">0</strong></article>
       </div>
       <div class="progress-row">
         <div class="progress-track"><div id="analysesProgressBar" class="progress-bar"></div></div>
@@ -95,28 +91,28 @@
       </div>
 
       <div class="analyses-filters">
-        <label class="filter-search"><span>Buscar</span><input id="analysisSearch" type="search" placeholder="Buscar análisis o nota..." /></label>
-        <label><span>Categoría</span><select id="filterCategory"><option value="all">Todas</option></select></label>
-        <label><span>Estado</span><select id="filterStatus">
-          <option value="all">Todos</option>
-          <option value="pending">Pendiente</option>
-          <option value="in_progress">En progreso</option>
-          <option value="done">Hecho</option>
-          <option value="discarded">Descartado</option>
+        <label class="filter-search"><span>Search</span><input id="analysisSearch" type="search" placeholder="Search analysis or note..." /></label>
+        <label><span>Category</span><select id="filterCategory"><option value="all">All</option></select></label>
+        <label><span>Status</span><select id="filterStatus">
+          <option value="all">All</option>
+          <option value="pending">Pending</option>
+          <option value="in_progress">In progress</option>
+          <option value="done">Done</option>
+          <option value="discarded">Discarded</option>
         </select></label>
-        <label><span>Prioridad</span><select id="filterPriority">
-          <option value="all">Todas</option>
-          <option value="high">Alta</option>
-          <option value="medium">Media</option>
-          <option value="low">Baja</option>
-          <option value="none">Sin prioridad</option>
+        <label><span>Priority</span><select id="filterPriority">
+          <option value="all">All</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+          <option value="none">No priority</option>
         </select></label>
       </div>
 
       <div id="planSyncSuggestion" class="plan-sync-suggestion hidden"></div>
 
       <div id="analysesEmpty" class="analyses-empty hidden">
-        <p>Todavía no hay categorías. Carga el catálogo semilla con los 17 grupos del §4 del plan, o crea una categoría personalizada.</p>
+        <p>No categories yet.</p>
       </div>
 
       <div id="analysesCategories" class="analyses-grid"></div>
@@ -217,7 +213,7 @@
 
   <footer><p>Research MVP. Not medical advice. Data is stored locally unless exported or synced by you to a private data repo.</p></footer>
 
-  <script src="app.js?v=10"></script>
+  <script src="app.js?v=11"></script>
   <script src="sync-guard.js?v=5"></script>
   <script src="plan-ui.js?v=3"></script>
   <script src="plan-toc-follow.js?v=6"></script>

@@ -685,232 +685,303 @@ window.addEventListener("orientationchange", () => setTimeout(render, 250));
 // ============================================================
 
 const STATUS_META = {
-  pending:     { label: "Pendiente",   className: "status-pending" },
-  in_progress: { label: "En progreso", className: "status-in-progress" },
-  done:        { label: "Hecho",       className: "status-done" },
-  discarded:   { label: "Descartado",  className: "status-discarded" }
+  pending:     { label: "Pending",     className: "status-pending" },
+  in_progress: { label: "In progress", className: "status-in-progress" },
+  done:        { label: "Done",        className: "status-done" },
+  discarded:   { label: "Discarded",   className: "status-discarded" }
 };
 
 const PRIORITY_META = {
-  none:   { label: "Sin prioridad", className: "priority-none" },
-  low:    { label: "Baja",          className: "priority-low" },
-  medium: { label: "Media",         className: "priority-medium" },
-  high:   { label: "Alta",          className: "priority-high" }
+  none:   { label: "No priority", className: "priority-none" },
+  low:    { label: "Low",         className: "priority-low" },
+  medium: { label: "Medium",      className: "priority-medium" },
+  high:   { label: "High",        className: "priority-high" }
 };
+
+const KIND_META = {
+  personal_fact:     { label: "Personal fact",     cost: false, invasiveness: false, targetDate: false, actionability: false, valueHint: "value" },
+  body_measurement:  { label: "Body measurement",  cost: false, invasiveness: false, targetDate: true,  actionability: true,  valueHint: "e.g. 72.4 kg" },
+  lab_test:          { label: "Lab test",          cost: true,  invasiveness: true,  targetDate: true,  actionability: true,  valueHint: "result and units" },
+  clinical_study:    { label: "Clinical study",    cost: true,  invasiveness: true,  targetDate: true,  actionability: true,  valueHint: "main finding" },
+  functional_test:   { label: "Functional test",   cost: false, invasiveness: false, targetDate: true,  actionability: true,  valueHint: "score / reps / time" },
+  wearable_metric:   { label: "Wearable metric",   cost: false, invasiveness: false, targetDate: false, actionability: true,  valueHint: "wearable reading" },
+  subjective_log:    { label: "Subjective log",    cost: false, invasiveness: false, targetDate: false, actionability: true,  valueHint: "1-10 or short text" },
+  nutrition_log:     { label: "Nutrition log",     cost: false, invasiveness: false, targetDate: false, actionability: true,  valueHint: "quantity / units" },
+  lifestyle_factor:  { label: "Lifestyle factor",  cost: false, invasiveness: false, targetDate: false, actionability: true,  valueHint: "current value" },
+  equipment:         { label: "Equipment",         cost: true,  invasiveness: false, targetDate: true,  actionability: false, valueHint: "model / source" },
+  questionnaire:     { label: "Self-assessment",   cost: false, invasiveness: false, targetDate: false, actionability: true,  valueHint: "short answer" }
+};
+
+function kindMeta(kind) {
+  return KIND_META[kind] || KIND_META.questionnaire;
+}
 
 const COST_OPTIONS = [
   { value: "",        label: "—" },
-  { value: "low",     label: "Bajo" },
-  { value: "medium",  label: "Medio" },
-  { value: "high",    label: "Alto" }
+  { value: "low",     label: "Low" },
+  { value: "medium",  label: "Medium" },
+  { value: "high",    label: "High" }
 ];
 
 const INVASIVENESS_OPTIONS = [
   { value: "",            label: "—" },
-  { value: "none",        label: "Ninguna" },
-  { value: "minimal",     label: "Mínima" },
-  { value: "invasive",    label: "Invasivo" }
+  { value: "none",        label: "None" },
+  { value: "minimal",     label: "Minimal" },
+  { value: "invasive",    label: "Invasive" }
 ];
 
 const ANALYSES_SEED_CATALOG = [
-  { code: "A", name: "Punto de partida físico y biológico", description: "Edad, estatura, peso real, cintura, cadera, composición corporal, actividad física, historial de carga física, lesiones, dolor, medicamentos, suplementos, sueño, estrés, horario laboral y exposición sedentaria.", items: [
-    "Edad", "Estatura", "Peso real (báscula)", "Cintura", "Cadera",
-    "Composición corporal (DEXA o bioimpedancia)",
-    "Actividad física semanal", "Historial de carga física",
-    "Lesiones pasadas y actuales", "Dolor actual",
-    "Medicamentos", "Suplementos",
-    "Calidad y horas de sueño (baseline)", "Estrés percibido",
-    "Horario laboral y exposición sedentaria"
+  { code: "A", name: "Physical and biological baseline", description: "Age, height, real weight, waist, hip, body composition, activity, load history, injuries, pain, meds, supplements, sleep, stress, work schedule and sedentary exposure.", items: [
+    { name: "Age", kind: "personal_fact" },
+    { name: "Height", kind: "personal_fact" },
+    { name: "Actual weight (scale)", kind: "body_measurement" },
+    { name: "Waist circumference", kind: "body_measurement" },
+    { name: "Hip circumference", kind: "body_measurement" },
+    { name: "Body composition (DEXA or BIA)", kind: "clinical_study" },
+    { name: "Weekly physical activity", kind: "lifestyle_factor" },
+    { name: "Physical load history", kind: "questionnaire" },
+    { name: "Past and current injuries", kind: "questionnaire" },
+    { name: "Current pain", kind: "subjective_log" },
+    { name: "Medications", kind: "personal_fact" },
+    { name: "Supplements", kind: "personal_fact" },
+    { name: "Baseline sleep hours and quality", kind: "subjective_log" },
+    { name: "Perceived stress", kind: "subjective_log" },
+    { name: "Work schedule and sedentary exposure", kind: "lifestyle_factor" },
   ]},
-  { code: "B", name: "Salud metabólica", description: "Glucosa, HbA1c, insulina, lípidos, ApoB, presión arterial, grasa visceral, cintura, hígado graso, inflamación, fibra, alcohol, azúcar, ultraprocesados y calidad de carbohidratos.", items: [
-    "Glucosa en ayunas", "HbA1c", "Insulina en ayunas", "HOMA-IR (calculado)",
-    "Panel lipídico completo", "ApoB",
-    "Presión arterial en casa (7 días AM/PM)",
-    "Grasa visceral (DEXA o estimación)",
-    "Hígado graso (ecografía o FibroScan)",
-    "hs-CRP (inflamación)",
-    "Registro de fibra diaria", "Registro de alcohol",
-    "Registro de azúcar añadida", "% ultraprocesados",
-    "Calidad de carbohidratos"
+  { code: "B", name: "Metabolic health", description: "Glucose, HbA1c, insulin, lipids, ApoB, blood pressure, visceral fat, waist, fatty liver, inflammation, fiber, alcohol, sugar, ultra-processed foods and carb quality.", items: [
+    { name: "Fasting glucose", kind: "lab_test" },
+    { name: "HbA1c", kind: "lab_test" },
+    { name: "Fasting insulin", kind: "lab_test" },
+    { name: "HOMA-IR (calculated)", kind: "lab_test" },
+    { name: "Full lipid panel", kind: "lab_test" },
+    { name: "ApoB", kind: "lab_test" },
+    { name: "Home blood pressure (7 days AM/PM)", kind: "body_measurement" },
+    { name: "Visceral fat (DEXA or estimate)", kind: "clinical_study" },
+    { name: "Fatty liver (ultrasound or FibroScan)", kind: "clinical_study" },
+    { name: "hs-CRP (inflammation)", kind: "lab_test" },
+    { name: "Daily fiber log", kind: "nutrition_log" },
+    { name: "Alcohol log", kind: "nutrition_log" },
+    { name: "Added sugar log", kind: "nutrition_log" },
+    { name: "% ultra-processed foods", kind: "nutrition_log" },
+    { name: "Carb quality", kind: "nutrition_log" },
   ]},
-  { code: "C", name: "Salud cardiovascular", description: "Frecuencia cardiaca en reposo, recuperación cardiaca, capacidad aeróbica, zona 2, HIIT, caminatas, correr, bicicleta, técnica, calzado e impacto articular.", items: [
-    "Frecuencia cardíaca en reposo", "Recuperación cardíaca post-esfuerzo",
-    "VO2 max estimado (wearable o test)",
-    "Tiempo semanal en zona 2", "Sesiones HIIT por semana",
-    "Caminatas diarias",
-    "Running: ritmo, distancia, técnica",
-    "Bicicleta: tiempo e intensidad",
-    "Evaluación de calzado",
-    "Impacto articular subjetivo"
+  { code: "C", name: "Cardiovascular health", description: "Resting heart rate, recovery, aerobic capacity, zone 2, HIIT, walks, running, cycling, technique, footwear, joint impact.", items: [
+    { name: "Resting heart rate", kind: "body_measurement" },
+    { name: "Post-effort heart rate recovery", kind: "functional_test" },
+    { name: "Estimated VO2 max (wearable or test)", kind: "functional_test" },
+    { name: "Weekly time in zone 2", kind: "lifestyle_factor" },
+    { name: "Weekly HIIT sessions", kind: "lifestyle_factor" },
+    { name: "Daily walks", kind: "lifestyle_factor" },
+    { name: "Running: pace, distance, technique", kind: "functional_test" },
+    { name: "Cycling: time and intensity", kind: "lifestyle_factor" },
+    { name: "Footwear evaluation", kind: "questionnaire" },
+    { name: "Subjective joint impact", kind: "subjective_log" },
   ]},
-  { code: "D", name: "Fuerza, masa muscular y salud ósea", description: "Fuerza de tren superior/inferior/espalda, agarre, masa muscular, densidad ósea, progresión, técnica, simetría, dolor, recuperación y volumen semanal.", items: [
-    "Fuerza tren superior (press / push-up test)",
-    "Fuerza tren inferior (sentadilla / peso muerto)",
-    "Fuerza de espalda (remo / dominadas)",
-    "Fuerza de agarre (dinamómetro)",
-    "Masa muscular (DEXA o bioimpedancia)",
-    "Densidad ósea (DEXA)",
-    "Progresión semanal de cargas",
-    "Técnica en levantamientos clave",
-    "Simetría izquierda/derecha",
-    "Dolor post-entrenamiento",
-    "Recuperación entre sesiones",
-    "Volumen semanal por grupo muscular"
+  { code: "D", name: "Strength, muscle mass and bone health", description: "Upper/lower/back strength, grip, muscle mass, bone density, progression, technique, symmetry, pain, recovery, weekly volume.", items: [
+    { name: "Upper body strength (bench / push-up test)", kind: "functional_test" },
+    { name: "Lower body strength (squat / deadlift)", kind: "functional_test" },
+    { name: "Back strength (row / pull-ups)", kind: "functional_test" },
+    { name: "Grip strength (dynamometer)", kind: "functional_test" },
+    { name: "Muscle mass (DEXA or BIA)", kind: "clinical_study" },
+    { name: "Bone density (DEXA)", kind: "clinical_study" },
+    { name: "Weekly load progression", kind: "lifestyle_factor" },
+    { name: "Technique in key lifts", kind: "questionnaire" },
+    { name: "Left/right symmetry", kind: "functional_test" },
+    { name: "Post-training pain", kind: "subjective_log" },
+    { name: "Recovery between sessions", kind: "subjective_log" },
+    { name: "Weekly volume per muscle group", kind: "lifestyle_factor" },
   ]},
-  { code: "E", name: "Movilidad, articulaciones y longevidad mecánica", description: "Tobillos, caderas, espalda torácica, hombros, muñecas, isquiotibiales, rodillas, escápulas, pies, postura, técnica de carga y técnica de carrera.", items: [
-    "Movilidad de tobillos", "Movilidad de caderas",
-    "Movilidad de columna torácica", "Movilidad de hombros",
-    "Movilidad de muñecas",
-    "Flexibilidad de isquiotibiales", "Estabilidad de rodillas",
-    "Control escapular", "Salud de los pies (arco, postura)",
-    "Postura general",
-    "Técnica de carga (sentadilla, peso muerto)",
-    "Técnica de carrera"
+  { code: "E", name: "Mobility, joints and mechanical longevity", description: "Ankles, hips, thoracic spine, shoulders, wrists, hamstrings, knees, scapulae, feet, posture, loading and running technique.", items: [
+    { name: "Ankle mobility", kind: "functional_test" },
+    { name: "Hip mobility", kind: "functional_test" },
+    { name: "Thoracic spine mobility", kind: "functional_test" },
+    { name: "Shoulder mobility", kind: "functional_test" },
+    { name: "Wrist mobility", kind: "functional_test" },
+    { name: "Hamstring flexibility", kind: "functional_test" },
+    { name: "Knee stability", kind: "functional_test" },
+    { name: "Scapular control", kind: "functional_test" },
+    { name: "Foot health (arch, posture)", kind: "functional_test" },
+    { name: "General posture", kind: "questionnaire" },
+    { name: "Loading technique (squat, deadlift)", kind: "questionnaire" },
+    { name: "Running technique", kind: "questionnaire" },
   ]},
-  { code: "F", name: "Sueño y recuperación", description: "Horas, calidad, horarios, despertares, cafeína, alcohol, cena, entrenamiento nocturno, luz artificial, temperatura, estrés, frecuencia cardiaca nocturna y HRV.", items: [
-    "Horas de sueño", "Calidad subjetiva 1-10",
-    "Consistencia de horarios", "Despertares nocturnos",
-    "Cafeína: cantidad y hora del último café",
-    "Alcohol y sueño",
-    "Cena: horario y composición",
-    "Entrenamiento nocturno: impacto",
-    "Exposición a luz artificial y pantallas",
-    "Temperatura del cuarto",
-    "Estrés antes de dormir",
-    "Frecuencia cardíaca nocturna",
-    "HRV nocturno",
-    "Latencia para dormir"
+  { code: "F", name: "Sleep and recovery", description: "Hours, quality, schedule, awakenings, caffeine, alcohol, dinner, late training, artificial light, temperature, stress, nighttime HR and HRV.", items: [
+    { name: "Hours of sleep", kind: "wearable_metric" },
+    { name: "Subjective quality 1-10", kind: "subjective_log" },
+    { name: "Schedule consistency", kind: "lifestyle_factor" },
+    { name: "Night awakenings", kind: "wearable_metric" },
+    { name: "Caffeine: amount and time of last coffee", kind: "nutrition_log" },
+    { name: "Alcohol and sleep", kind: "nutrition_log" },
+    { name: "Dinner: timing and composition", kind: "nutrition_log" },
+    { name: "Late-night training: impact", kind: "lifestyle_factor" },
+    { name: "Artificial light and screen exposure", kind: "lifestyle_factor" },
+    { name: "Bedroom temperature", kind: "lifestyle_factor" },
+    { name: "Stress before bed", kind: "subjective_log" },
+    { name: "Nighttime heart rate", kind: "wearable_metric" },
+    { name: "Nighttime HRV", kind: "wearable_metric" },
+    { name: "Sleep latency", kind: "wearable_metric" },
   ]},
-  { code: "G", name: "Alimentación y nutrición de largo plazo", description: "Calorías, proteína, carbohidratos, grasas, fibra, micronutrientes, hidratación, sodio, potasio, magnesio, calcio, vitamina D, omega-3, hierro, B12, folato, ultraprocesados, alcohol, horarios, saciedad, digestión y comida disponible en Irlanda.", items: [
-    "Calorías diarias estimadas",
-    "Proteína g/día", "Carbohidratos g/día", "Grasas g/día", "Fibra g/día",
-    "Hidratación (litros/día)",
-    "Sodio", "Potasio", "Magnesio", "Calcio",
-    "Vitamina D", "Omega-3 (dieta + omega-3 index)",
-    "Hierro", "B12", "Folato",
-    "% ultraprocesados", "Alcohol semanal",
-    "Horarios de comida",
-    "Saciedad y digestión post-comida",
-    "Disponibilidad real de alimentos en Irlanda"
+  { code: "G", name: "Long-term diet and nutrition", description: "Calories, protein, carbs, fats, fiber, micronutrients, hydration, sodium, potassium, magnesium, calcium, vitamin D, omega-3, iron, B12, folate, ultra-processed, alcohol, timing, satiety, digestion and food availability in Ireland.", items: [
+    { name: "Estimated daily calories", kind: "nutrition_log" },
+    { name: "Protein g/day", kind: "nutrition_log" },
+    { name: "Carbs g/day", kind: "nutrition_log" },
+    { name: "Fats g/day", kind: "nutrition_log" },
+    { name: "Fiber g/day", kind: "nutrition_log" },
+    { name: "Hydration (liters/day)", kind: "nutrition_log" },
+    { name: "Sodium", kind: "nutrition_log" },
+    { name: "Potassium", kind: "nutrition_log" },
+    { name: "Magnesium intake", kind: "nutrition_log" },
+    { name: "Calcium intake", kind: "nutrition_log" },
+    { name: "Vitamin D (lab)", kind: "lab_test" },
+    { name: "Omega-3 (diet + omega-3 index)", kind: "lab_test" },
+    { name: "Iron (lab)", kind: "lab_test" },
+    { name: "B12 (lab)", kind: "lab_test" },
+    { name: "Folate (lab)", kind: "lab_test" },
+    { name: "% ultra-processed foods", kind: "nutrition_log" },
+    { name: "Weekly alcohol", kind: "nutrition_log" },
+    { name: "Meal timing", kind: "lifestyle_factor" },
+    { name: "Post-meal satiety and digestion", kind: "subjective_log" },
+    { name: "Actual food availability in Ireland", kind: "questionnaire" },
   ]},
-  { code: "H", name: "Digestión, microbiota y salud intestinal", description: "Fibra, verduras, frutas, legumbres, fermentados, agua, regularidad, hinchazón, gases, reflujo, intolerancias y comidas problemáticas.", items: [
-    "Fibra g/día",
-    "Variedad de verduras semanales", "Variedad de frutas",
-    "Legumbres por semana", "Fermentados por semana",
-    "Hidratación",
-    "Regularidad intestinal", "Hinchazón", "Gases", "Reflujo",
-    "Intolerancias conocidas",
-    "Comidas que provocan molestias"
+  { code: "H", name: "Digestion, microbiome and gut health", description: "Fiber, vegetables, fruit, legumes, fermented foods, water, regularity, bloating, gas, reflux, intolerances and trigger foods.", items: [
+    { name: "Fiber g/day", kind: "nutrition_log" },
+    { name: "Weekly vegetable variety", kind: "nutrition_log" },
+    { name: "Fruit variety", kind: "nutrition_log" },
+    { name: "Legumes per week", kind: "nutrition_log" },
+    { name: "Fermented foods per week", kind: "nutrition_log" },
+    { name: "Hydration", kind: "nutrition_log" },
+    { name: "Bowel regularity", kind: "subjective_log" },
+    { name: "Bloating", kind: "subjective_log" },
+    { name: "Gas", kind: "subjective_log" },
+    { name: "Reflux", kind: "subjective_log" },
+    { name: "Known intolerances", kind: "questionnaire" },
+    { name: "Trigger foods", kind: "questionnaire" },
   ]},
-  { code: "I", name: "Estrés, salud mental y propósito", description: "Estrés laboral/financiero, presión por metas, ansiedad, motivación, relación con comida/cuerpo, familia, vida social, descanso, tiempo sin pantalla, propósito y sentido existencial.", items: [
-    "Nivel de estrés laboral", "Estrés financiero",
-    "Presión por metas", "Ansiedad", "Motivación",
-    "Relación con la comida y el cuerpo",
-    "Conexión familiar", "Vida social",
-    "Descanso mental", "Tiempo sin pantalla",
-    "Sentido de propósito"
+  { code: "I", name: "Stress, mental health and purpose", description: "Work/financial stress, goal pressure, anxiety, motivation, relationship with food and body, family, social life, rest, screen-free time, purpose and meaning.", items: [
+    { name: "Work stress level", kind: "subjective_log" },
+    { name: "Financial stress", kind: "subjective_log" },
+    { name: "Goal pressure", kind: "subjective_log" },
+    { name: "Anxiety", kind: "subjective_log" },
+    { name: "Motivation", kind: "subjective_log" },
+    { name: "Relationship with food and body", kind: "questionnaire" },
+    { name: "Family connection", kind: "subjective_log" },
+    { name: "Social life", kind: "subjective_log" },
+    { name: "Mental rest", kind: "subjective_log" },
+    { name: "Screen-free time", kind: "lifestyle_factor" },
+    { name: "Sense of purpose", kind: "questionnaire" },
   ]},
-  { code: "J", name: "Ambiente: Irlanda, clima, luz y estilo de vida", description: "Poca luz en invierno, lluvia, frío, días cortos, vitamina D, caminatas, transporte, entorno de actividad física, seguridad, supermercados, costos, rutinas indoor y ánimo estacional.", items: [
-    "Exposición a luz natural diaria",
-    "Vitamina D (sol y suplementación)",
-    "Caminatas con luz natural",
-    "Transporte y minutos caminando",
-    "Entornos disponibles para ejercicio",
-    "Seguridad para correr/caminar",
-    "Acceso a supermercados",
-    "Costos de alimentos clave",
-    "Rutinas indoor para invierno",
-    "Ánimo estacional (SAD)"
+  { code: "J", name: "Environment: Ireland, climate, light and lifestyle", description: "Low winter light, rain, cold, short days, vitamin D, walks, transport, exercise environments, safety, supermarkets, costs, indoor routines and seasonal mood.", items: [
+    { name: "Daily natural light exposure", kind: "lifestyle_factor" },
+    { name: "Vitamin D (sun and supplementation)", kind: "lab_test" },
+    { name: "Walks with natural light", kind: "lifestyle_factor" },
+    { name: "Transport and walking minutes", kind: "lifestyle_factor" },
+    { name: "Available exercise environments", kind: "questionnaire" },
+    { name: "Safety for running/walking", kind: "questionnaire" },
+    { name: "Supermarket access", kind: "questionnaire" },
+    { name: "Cost of key foods", kind: "questionnaire" },
+    { name: "Indoor winter routines", kind: "questionnaire" },
+    { name: "Seasonal mood (SAD)", kind: "subjective_log" },
   ]},
-  { code: "K", name: "Trabajo, sedentarismo y ergonomía", description: "Horas sentado, pausas, postura, cuello, lumbar, fatiga visual, café, snacks, comidas laborales, caminatas y estrés por deadlines.", items: [
-    "Horas sentado al día",
-    "Pausas activas (cantidad y frecuencia)",
-    "Postura en el escritorio",
-    "Dolor de cuello", "Dolor lumbar", "Fatiga visual",
-    "Consumo de café en el trabajo", "Snacks laborales",
-    "Comidas laborales (composición)",
-    "Caminatas durante la jornada",
-    "Estrés por deadlines"
+  { code: "K", name: "Work, sedentary behavior and ergonomics", description: "Hours sitting, breaks, posture, neck, lower back, eye fatigue, coffee, snacks, work meals, walks and deadline stress.", items: [
+    { name: "Hours sitting per day", kind: "lifestyle_factor" },
+    { name: "Active breaks (count and frequency)", kind: "lifestyle_factor" },
+    { name: "Desk posture", kind: "questionnaire" },
+    { name: "Neck pain", kind: "subjective_log" },
+    { name: "Lower back pain", kind: "subjective_log" },
+    { name: "Visual fatigue", kind: "subjective_log" },
+    { name: "Coffee intake at work", kind: "nutrition_log" },
+    { name: "Work snacks", kind: "nutrition_log" },
+    { name: "Work meals (composition)", kind: "nutrition_log" },
+    { name: "Walks during the workday", kind: "lifestyle_factor" },
+    { name: "Deadline stress", kind: "subjective_log" },
   ]},
-  { code: "L", name: "Prevención de lesiones y daño acumulativo", description: "Volumen, intensidad, frecuencia, repetición, técnica, descanso, calentamiento, movilidad, dolor, sueño, estrés, calzado, superficie y progresión.", items: [
-    "Volumen semanal de entrenamiento",
-    "Intensidad relativa",
-    "Frecuencia de movimientos repetitivos",
-    "Técnica en ejercicios clave",
-    "Descanso entre sesiones",
-    "Calentamiento estructurado",
-    "Movilidad preventiva",
-    "Dolor recurrente",
-    "Sueño suficiente para recuperar",
-    "Manejo del estrés",
-    "Calzado adecuado",
-    "Superficie de entrenamiento",
-    "Progresión de cargas"
+  { code: "L", name: "Injury prevention and cumulative damage", description: "Volume, intensity, frequency, repetition, technique, rest, warm-up, mobility, pain, sleep, stress, footwear, surface, progression.", items: [
+    { name: "Weekly training volume", kind: "lifestyle_factor" },
+    { name: "Relative intensity", kind: "lifestyle_factor" },
+    { name: "Frequency of repetitive movements", kind: "lifestyle_factor" },
+    { name: "Technique in key exercises", kind: "questionnaire" },
+    { name: "Rest between sessions", kind: "lifestyle_factor" },
+    { name: "Structured warm-up", kind: "questionnaire" },
+    { name: "Preventive mobility", kind: "lifestyle_factor" },
+    { name: "Recurring pain", kind: "subjective_log" },
+    { name: "Adequate sleep for recovery", kind: "subjective_log" },
+    { name: "Stress management", kind: "subjective_log" },
+    { name: "Adequate footwear", kind: "questionnaire" },
+    { name: "Training surface", kind: "questionnaire" },
+    { name: "Load progression", kind: "lifestyle_factor" },
   ]},
-  { code: "M", name: "Biomarcadores y medicina preventiva", description: "Hemograma, glucosa, HbA1c, insulina, lípidos, ApoB, presión arterial, vitamina D, B12, folato, ferritina, hierro, TSH, función hepática, función renal, hs-CRP, testosterona si aplica, magnesio y omega-3 index.", items: [
-    "Hemograma completo",
-    "Glucosa en ayunas", "HbA1c", "Insulina",
-    "Panel lipídico", "ApoB",
-    "Presión arterial",
-    "Vitamina D (25-OH)", "B12", "Folato",
-    "Ferritina", "Hierro sérico",
-    "TSH",
-    "Función hepática (ALT, AST, GGT)",
-    "Función renal (creatinina, eGFR)",
-    "hs-CRP",
-    "Testosterona (si aplica)",
-    "Magnesio",
-    "Omega-3 index"
+  { code: "M", name: "Biomarkers and preventive medicine", description: "Complete blood count, glucose, HbA1c, insulin, lipids, ApoB, blood pressure, vitamin D, B12, folate, ferritin, iron, TSH, liver/kidney function, hs-CRP, testosterone if applies, magnesium, omega-3 index.", items: [
+    { name: "Complete blood count", kind: "lab_test" },
+    { name: "Fasting glucose (M)", kind: "lab_test" },
+    { name: "HbA1c (M)", kind: "lab_test" },
+    { name: "Insulin (M)", kind: "lab_test" },
+    { name: "Lipid panel (M)", kind: "lab_test" },
+    { name: "ApoB (M)", kind: "lab_test" },
+    { name: "Blood pressure (M)", kind: "body_measurement" },
+    { name: "Vitamin D (25-OH)", kind: "lab_test" },
+    { name: "B12", kind: "lab_test" },
+    { name: "Folate", kind: "lab_test" },
+    { name: "Ferritin", kind: "lab_test" },
+    { name: "Serum iron", kind: "lab_test" },
+    { name: "TSH", kind: "lab_test" },
+    { name: "Liver function (ALT, AST, GGT)", kind: "lab_test" },
+    { name: "Kidney function (creatinine, eGFR)", kind: "lab_test" },
+    { name: "hs-CRP", kind: "lab_test" },
+    { name: "Testosterone (if applies)", kind: "lab_test" },
+    { name: "Magnesium", kind: "lab_test" },
+    { name: "Omega-3 index", kind: "lab_test" },
   ]},
-  { code: "N", name: "Suplementos y protocolos avanzados", description: "Los suplementos no son la base. Primero van sueño, alimentación, entrenamiento, luz, estrés y análisis.", items: [
-    "Vitamina D3 (dosis según análisis)",
-    "Omega-3 (EPA+DHA)",
-    "Magnesio",
-    "Creatina monohidrato",
-    "Proteína en polvo (si déficit)",
-    "Multivitamínico (si déficit)",
-    "Otros (sólo tras evaluar análisis)"
+  { code: "N", name: "Supplements and advanced protocols", description: "Supplements are not the foundation. Sleep, food, training, light, stress and lab work come first.", items: [
+    { name: "Vitamin D3 (dose per labs)", kind: "personal_fact" },
+    { name: "Omega-3 (EPA+DHA)", kind: "personal_fact" },
+    { name: "Magnesium (supplement)", kind: "personal_fact" },
+    { name: "Creatine monohydrate", kind: "personal_fact" },
+    { name: "Protein powder (if deficit)", kind: "personal_fact" },
+    { name: "Multivitamin (if deficit)", kind: "personal_fact" },
+    { name: "Others (only after lab review)", kind: "personal_fact" },
   ]},
-  { code: "O", name: "Azúcar, carbohidratos refinados y respuesta glucémica", description: "Azúcar añadida, azúcares libres, bebidas azucaradas, jugos, postres, harinas blancas, fibra, proteína/grasa en la comida, respuesta glucémica, antojos, energía, hambre, salud dental y contexto.", items: [
-    "Azúcar añadida diaria",
-    "Azúcares libres (jugos, miel, etc.)",
-    "Bebidas azucaradas semanales",
-    "Postres semanales",
-    "Harinas blancas semanales",
-    "Fibra acompañando carbohidratos",
-    "Proteína/grasa acompañando carbohidratos",
-    "Respuesta glucémica (CGM si disponible)",
-    "Antojos",
-    "Energía post-comida",
-    "Hambre 2-3 h post-comida",
-    "Salud dental",
-    "Contexto emocional del consumo"
+  { code: "O", name: "Sugar, refined carbs and glycemic response", description: "Added sugar, free sugars, sugary drinks, juices, desserts, white flours, fiber, protein/fat in the meal, glycemic response, cravings, energy, hunger, dental health and context.", items: [
+    { name: "Daily added sugar", kind: "nutrition_log" },
+    { name: "Free sugars (juices, honey, etc.)", kind: "nutrition_log" },
+    { name: "Weekly sugary drinks", kind: "nutrition_log" },
+    { name: "Weekly desserts", kind: "nutrition_log" },
+    { name: "Weekly white flours", kind: "nutrition_log" },
+    { name: "Fiber accompanying carbs", kind: "nutrition_log" },
+    { name: "Protein/fat accompanying carbs", kind: "nutrition_log" },
+    { name: "Glycemic response (CGM if available)", kind: "wearable_metric" },
+    { name: "Cravings", kind: "subjective_log" },
+    { name: "Post-meal energy", kind: "subjective_log" },
+    { name: "Hunger 2-3 h post-meal", kind: "subjective_log" },
+    { name: "Dental health", kind: "clinical_study" },
+    { name: "Emotional context of intake", kind: "questionnaire" },
   ]},
-  { code: "P", name: "Sistema de investigación alimentaria progresiva", description: "Alimento individual → combinación simple → receta completa → horario → orden de consumo → respuesta personal → ajuste.", items: [
-    "Alimentos individuales en evaluación",
-    "Combinaciones simples probadas",
-    "Recetas completas probadas",
-    "Horarios óptimos por comida",
-    "Orden de consumo (verdura → proteína → carbohidrato)",
-    "Respuesta personal por alimento",
-    "Ajustes registrados"
+  { code: "P", name: "Progressive food research system", description: "Individual food → simple combination → full recipe → timing → eating order → personal response → adjustment.", items: [
+    { name: "Individual foods under evaluation", kind: "questionnaire" },
+    { name: "Simple combinations tested", kind: "questionnaire" },
+    { name: "Full recipes tested", kind: "questionnaire" },
+    { name: "Optimal timing per meal", kind: "questionnaire" },
+    { name: "Eating order (veg → protein → carbs)", kind: "questionnaire" },
+    { name: "Personal response per food", kind: "subjective_log" },
+    { name: "Recorded adjustments", kind: "questionnaire" },
   ]},
-  { code: "Q", name: "Mapa ideal de mediciones, pruebas, aparatos y estudios", description: "Báscula, cinta métrica, presión arterial, oxímetro, wearable, banda de pecho, glucómetro, CGM, ECG, prueba de esfuerzo, CPET/VO2 max, DEXA, estudio de sueño, análisis de sangre, pruebas funcionales y mediciones ambientales.", items: [
-    "Báscula", "Cinta métrica",
-    "Tensiómetro (Omron o similar)",
-    "Oxímetro de pulso",
-    "Wearable (reloj con HR, sueño, HRV)",
-    "Banda de pecho HR",
-    "Glucómetro", "CGM (Libre o Dexcom)",
-    "ECG (en clínica)",
-    "Prueba de esfuerzo",
-    "CPET / VO2 max",
-    "DEXA (composición + densidad ósea)",
-    "Estudio de sueño",
-    "Panel longevidad de análisis de sangre",
-    "Pruebas funcionales (sentadilla profunda, dorsiflexión, plancha)",
-    "Mediciones ambientales (luz, temp, CO₂ del dormitorio)"
-  ]}
+  { code: "Q", name: "Ideal map of measurements, tests, devices and studies", description: "Scale, tape measure, blood pressure monitor, oximeter, wearable, chest strap, glucometer, CGM, ECG, stress test, CPET/VO2 max, DEXA, sleep study, blood panel, functional tests and environmental measurements.", items: [
+    { name: "Scale", kind: "equipment" },
+    { name: "Tape measure", kind: "equipment" },
+    { name: "Blood pressure monitor (Omron or similar)", kind: "equipment" },
+    { name: "Pulse oximeter", kind: "equipment" },
+    { name: "Wearable (watch with HR, sleep, HRV)", kind: "equipment" },
+    { name: "Chest HR strap", kind: "equipment" },
+    { name: "Glucometer", kind: "equipment" },
+    { name: "CGM (Libre or Dexcom)", kind: "equipment" },
+    { name: "ECG (in clinic)", kind: "clinical_study" },
+    { name: "Stress test", kind: "functional_test" },
+    { name: "CPET / VO2 max", kind: "functional_test" },
+    { name: "DEXA (composition + bone density)", kind: "clinical_study" },
+    { name: "Sleep study", kind: "clinical_study" },
+    { name: "Longevity blood panel", kind: "lab_test" },
+    { name: "Functional tests (deep squat, dorsiflexion, plank)", kind: "functional_test" },
+    { name: "Environmental measurements (light, temp, CO₂ in bedroom)", kind: "equipment" },
+  ]},
 ];
 
 function uid() {
@@ -942,12 +1013,31 @@ function globalStats() {
   return stats;
 }
 
-function setupAnalyses() {
-  const loadSeedBtn = document.getElementById("loadAnalysesSeedBtn");
-  if (loadSeedBtn) loadSeedBtn.addEventListener("click", () => loadAnalysesSeed());
+function ensureAutoSeed() {
+  if (!state.analyses) state.analyses = { categories: [], items: [] };
+  if (state.analyses.categories.length > 0) {
+    // Backfill: ensure every existing item has a kind matching the seed
+    const seedByCatName = new Map();
+    for (const s of ANALYSES_SEED_CATALOG) seedByCatName.set(s.name, new Map(s.items.map((it) => [it.name.toLowerCase(), it.kind])));
+    let backfilled = 0;
+    for (const cat of state.analyses.categories) {
+      const seedMap = seedByCatName.get(cat.name);
+      if (!seedMap) continue;
+      for (const item of state.analyses.items.filter((i) => i.categoryId === cat.id)) {
+        const k = seedMap.get(item.name.toLowerCase());
+        if (k && item.kind !== k) { item.kind = k; backfilled++; }
+        if (!item.kind) { item.kind = "questionnaire"; backfilled++; }
+        if (!Array.isArray(item.updates)) { item.updates = []; backfilled++; }
+      }
+    }
+    if (backfilled > 0) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    return;
+  }
+  loadAnalysesSeed();
+}
 
-  const addCatBtn = document.getElementById("addCategoryBtn");
-  if (addCatBtn) addCatBtn.addEventListener("click", addCustomCategoryPrompt);
+function setupAnalyses() {
+  ensureAutoSeed();
 
   const search = document.getElementById("analysisSearch");
   if (search) {
@@ -1050,31 +1140,35 @@ function loadAnalysesSeed() {
       existingByCode.set(seed.code, cat);
       addedCats++;
     }
-    const existingItemNames = new Set(
-      state.analyses.items.filter((i) => i.categoryId === cat.id).map((i) => i.name.toLowerCase())
-    );
-    for (const itemName of seed.items) {
-      if (existingItemNames.has(itemName.toLowerCase())) continue;
-      state.analyses.items.push(createItem(cat.id, itemName));
+    const existing = state.analyses.items.filter((i) => i.categoryId === cat.id);
+    const existingItemNames = new Set(existing.map((i) => i.name.toLowerCase()));
+    for (const seedItem of seed.items) {
+      const itemName = typeof seedItem === "string" ? seedItem : seedItem.name;
+      const kind = typeof seedItem === "string" ? "questionnaire" : (seedItem.kind || "questionnaire");
+      if (existingItemNames.has(itemName.toLowerCase())) {
+        // Backfill kind for items added before kinds existed
+        const match = existing.find((i) => i.name.toLowerCase() === itemName.toLowerCase());
+        if (match && !match.kind) match.kind = kind;
+        continue;
+      }
+      state.analyses.items.push(createItem(cat.id, itemName, kind));
       addedItems++;
     }
   }
   sortCategoriesByCode();
   saveState();
-  setSyncStatus(`Catálogo cargado. Añadidas ${addedCats} categorías y ${addedItems} análisis nuevos.`);
 }
 
 function offerSeedForCode(code) {
   const seed = ANALYSES_SEED_CATALOG.find((s) => s.code === code.toUpperCase());
-  if (!seed) {
-    alert(`No hay semilla para la categoría ${code}. Créala como personalizada con el botón "+ Categoría personalizada".`);
-    return;
-  }
-  const ok = confirm(`Crear la categoría ${seed.code}. ${seed.name} con ${seed.items.length} análisis sugeridos?`);
-  if (!ok) return;
+  if (!seed) return;
   const cat = { id: uid(), code: seed.code, name: seed.name, description: seed.description, custom: false };
   state.analyses.categories.push(cat);
-  for (const itemName of seed.items) state.analyses.items.push(createItem(cat.id, itemName));
+  for (const seedItem of seed.items) {
+    const itemName = typeof seedItem === "string" ? seedItem : seedItem.name;
+    const kind = typeof seedItem === "string" ? "questionnaire" : (seedItem.kind || "questionnaire");
+    state.analyses.items.push(createItem(cat.id, itemName, kind));
+  }
   sortCategoriesByCode();
   saveState();
   scrollToCategoryCard(cat.id);
@@ -1088,12 +1182,13 @@ function sortCategoriesByCode() {
   });
 }
 
-function createItem(categoryId, name) {
+function createItem(categoryId, name, kind = "questionnaire") {
   const now = new Date().toISOString();
   return {
     id: uid(),
     categoryId,
     name,
+    kind,
     description: "",
     priority: "none",
     status: "pending",
@@ -1102,6 +1197,7 @@ function createItem(categoryId, name) {
     actionability: "",
     notes: "",
     targetDate: "",
+    updates: [],
     createdAt: now,
     updatedAt: now
   };
@@ -1190,7 +1286,7 @@ function renderPlanSyncSuggestion() {
   }
   box.classList.remove("hidden");
   const chips = missing.map((code) => `<button type="button" class="chip" data-action="seed-code" data-code="${escapeHtml(code)}">+ ${escapeHtml(code)}</button>`).join(" ");
-  box.innerHTML = `<strong>Detectadas en §4 del plan, sin categoría aquí:</strong> ${chips} <span class="muted">(click para crear)</span>`;
+  box.innerHTML = `<strong>Found in plan §4 but missing here:</strong> ${chips} <span class="muted">(click to create)</span>`;
 }
 
 function detectPlanCategoryCodes(markdown) {
@@ -1259,35 +1355,27 @@ function renderCategoryCard(cat, items) {
   const stats = categoryStats(cat.id);
   const isOpen = expandedCategories.has(cat.id);
   const codeChip = cat.code ? `<span class="category-code">${escapeHtml(cat.code)}</span>` : "";
-  const customTag = cat.custom ? `<span class="badge custom-tag">Personalizada</span>` : "";
   const itemsHtml = items.length
     ? items.map(renderItemRow).join("")
-    : `<p class="muted small-pad">Sin análisis visibles con los filtros actuales.</p>`;
+    : `<p class="muted small-pad">No analyses visible with current filters.</p>`;
   return `
     <article class="category-card ${isOpen ? "open" : ""}" data-cat-id="${escapeHtml(cat.id)}">
       <header class="category-head" data-action="toggle-category">
         <div class="category-head-left">
           ${codeChip}
           <div>
-            <div class="category-title">${escapeHtml(cat.name)} ${customTag}</div>
+            <div class="category-title">${escapeHtml(cat.name)}</div>
             <div class="category-desc">${escapeHtml(cat.description || "")}</div>
           </div>
         </div>
         <div class="category-head-right">
-          <span class="category-counter">${stats.done} / ${stats.total} hechos</span>
+          <span class="category-counter">${stats.done} / ${stats.total} done</span>
           <span class="caret">${isOpen ? "▴" : "▾"}</span>
         </div>
       </header>
       <div class="category-body" ${isOpen ? "" : "hidden"}>
-        <div class="category-actions">
-          ${cat.code ? `<button type="button" class="link-btn" data-action="goto-plan" data-code="${escapeHtml(cat.code)}">Ver §4.${escapeHtml(cat.code)} en el plan →</button>` : ""}
-          ${cat.custom ? `<button type="button" class="link-btn danger-link" data-action="delete-category" data-cat-id="${escapeHtml(cat.id)}">Eliminar categoría</button>` : ""}
-        </div>
+        ${cat.code ? `<div class="category-actions"><button type="button" class="link-btn" data-action="goto-plan" data-code="${escapeHtml(cat.code)}">View §4.${escapeHtml(cat.code)} in the plan →</button></div>` : ""}
         <ul class="analysis-list">${itemsHtml}</ul>
-        <form class="add-item-form" data-action="add-item" data-cat-id="${escapeHtml(cat.id)}">
-          <input name="name" type="text" placeholder="Nombre del nuevo análisis" required />
-          <button type="submit">+ Agregar análisis</button>
-        </form>
       </div>
     </article>
   `;
@@ -1297,43 +1385,84 @@ function renderItemRow(item) {
   const isOpen = expandedItems.has(item.id);
   const statusMeta = STATUS_META[item.status] || STATUS_META.pending;
   const priorityMeta = PRIORITY_META[item.priority || "none"];
+  const meta = kindMeta(item.kind);
+  const updates = Array.isArray(item.updates) ? item.updates : [];
+  const latest = updates.length ? updates[updates.length - 1] : null;
+  const latestLine = latest
+    ? `<span class="latest-update" title="${escapeHtml(latest.notes || "")}">${escapeHtml(latest.date || latest.createdAt.slice(0, 10))}: ${escapeHtml(latest.value || "(no value)")}</span>`
+    : "";
+
+  const detailFields = [];
+  if (meta.cost) {
+    detailFields.push(`<label>Cost
+      <select data-action="update" data-field="cost">
+        ${COST_OPTIONS.map((o) => `<option value="${o.value}" ${item.cost === o.value ? "selected" : ""}>${escapeHtml(o.label)}</option>`).join("")}
+      </select>
+    </label>`);
+  }
+  if (meta.invasiveness) {
+    detailFields.push(`<label>Invasiveness
+      <select data-action="update" data-field="invasiveness">
+        ${INVASIVENESS_OPTIONS.map((o) => `<option value="${o.value}" ${item.invasiveness === o.value ? "selected" : ""}>${escapeHtml(o.label)}</option>`).join("")}
+      </select>
+    </label>`);
+  }
+  if (meta.actionability) {
+    detailFields.push(`<label>Actionability 1-5
+      <input type="number" min="1" max="5" step="1" value="${escapeHtml(item.actionability || "")}" data-action="update" data-field="actionability" />
+    </label>`);
+  }
+  if (meta.targetDate) {
+    detailFields.push(`<label>Target date
+      <input type="date" value="${escapeHtml(item.targetDate || "")}" data-action="update" data-field="targetDate" />
+    </label>`);
+  }
+
+  const detailsGrid = detailFields.length
+    ? `<div class="item-details-grid">${detailFields.join("")}</div>`
+    : "";
+
+  const updatesList = updates.length
+    ? `<ul class="updates-list">${updates.slice().reverse().map((u) => `
+        <li class="update-row">
+          <span class="update-date">${escapeHtml(u.date || (u.createdAt || "").slice(0, 10))}</span>
+          <span class="update-value">${escapeHtml(u.value || "")}</span>
+          ${u.notes ? `<span class="update-notes">${escapeHtml(u.notes)}</span>` : ""}
+        </li>`).join("")}</ul>`
+    : `<p class="muted small-pad updates-empty">No updates logged yet.</p>`;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const valueHint = escapeHtml(meta.valueHint || "value");
+
   return `
     <li class="analysis-item ${isOpen ? "open" : ""}" data-item-id="${escapeHtml(item.id)}">
       <div class="item-row">
         <span class="status-dot ${statusMeta.className}" aria-hidden="true"></span>
         <button type="button" class="item-name" data-action="toggle-item">${escapeHtml(item.name)}</button>
+        <span class="kind-chip" title="Field type">${escapeHtml(meta.label)}</span>
         <select class="inline-select priority ${priorityMeta.className}" data-action="update" data-field="priority">
           ${Object.entries(PRIORITY_META).map(([v, m]) => `<option value="${v}" ${item.priority === v || (!item.priority && v === "none") ? "selected" : ""}>${escapeHtml(m.label)}</option>`).join("")}
         </select>
         <select class="inline-select status ${statusMeta.className}" data-action="update" data-field="status">
           ${Object.entries(STATUS_META).map(([v, m]) => `<option value="${v}" ${item.status === v ? "selected" : ""}>${escapeHtml(m.label)}</option>`).join("")}
         </select>
-        <button type="button" class="icon-btn" data-action="toggle-item" title="Detalles">${isOpen ? "▴" : "▾"}</button>
+        ${latestLine}
+        <button type="button" class="icon-btn" data-action="toggle-item" title="Details">${isOpen ? "▴" : "▾"}</button>
       </div>
       <div class="item-details" ${isOpen ? "" : "hidden"}>
-        <div class="item-details-grid">
-          <label>Costo
-            <select data-action="update" data-field="cost">
-              ${COST_OPTIONS.map((o) => `<option value="${o.value}" ${item.cost === o.value ? "selected" : ""}>${escapeHtml(o.label)}</option>`).join("")}
-            </select>
-          </label>
-          <label>Invasividad
-            <select data-action="update" data-field="invasiveness">
-              ${INVASIVENESS_OPTIONS.map((o) => `<option value="${o.value}" ${item.invasiveness === o.value ? "selected" : ""}>${escapeHtml(o.label)}</option>`).join("")}
-            </select>
-          </label>
-          <label>Accionabilidad 1-5
-            <input type="number" min="1" max="5" step="1" value="${escapeHtml(item.actionability || "")}" data-action="update" data-field="actionability" />
-          </label>
-          <label>Fecha objetivo
-            <input type="date" value="${escapeHtml(item.targetDate || "")}" data-action="update" data-field="targetDate" />
-          </label>
-        </div>
-        <label class="full-width">Notas
-          <textarea rows="2" data-action="update" data-field="notes" placeholder="Notas, contexto, dónde hacerlo, costo real, resultado...">${escapeHtml(item.notes || "")}</textarea>
+        ${detailsGrid}
+        <label class="full-width">Notes
+          <textarea rows="2" data-action="update" data-field="notes" placeholder="Context, where to do it, real cost, observations...">${escapeHtml(item.notes || "")}</textarea>
         </label>
-        <div class="item-details-actions">
-          <button type="button" class="link-btn danger-link" data-action="delete-item">Eliminar análisis</button>
+        <div class="updates-block">
+          <div class="updates-head">Updates <span class="muted">(${updates.length})</span></div>
+          ${updatesList}
+          <form class="add-update-form" data-action="add-update" data-item-id="${escapeHtml(item.id)}">
+            <input name="date" type="date" value="${today}" required />
+            <input name="value" type="text" placeholder="${valueHint}" />
+            <input name="notes" type="text" placeholder="Optional notes" />
+            <button type="submit">+ Add update</button>
+          </form>
         </div>
       </div>
     </li>
@@ -1358,26 +1487,6 @@ function handleAnalysesClick(event) {
     if (expandedItems.has(itemId)) expandedItems.delete(itemId);
     else expandedItems.add(itemId);
     renderAnalyses();
-  } else if (action === "delete-item") {
-    const li = actionEl.closest(".analysis-item");
-    if (!li) return;
-    const itemId = li.dataset.itemId;
-    const item = state.analyses.items.find((i) => i.id === itemId);
-    if (!item) return;
-    if (!confirm(`¿Eliminar análisis "${item.name}"?`)) return;
-    state.analyses.items = state.analyses.items.filter((i) => i.id !== itemId);
-    expandedItems.delete(itemId);
-    saveState();
-  } else if (action === "delete-category") {
-    const catId = actionEl.dataset.catId;
-    const cat = state.analyses.categories.find((c) => c.id === catId);
-    if (!cat) return;
-    const count = state.analyses.items.filter((i) => i.categoryId === catId).length;
-    if (!confirm(`¿Eliminar categoría "${cat.name}" y sus ${count} análisis?`)) return;
-    state.analyses.categories = state.analyses.categories.filter((c) => c.id !== catId);
-    state.analyses.items = state.analyses.items.filter((i) => i.categoryId !== catId);
-    expandedCategories.delete(catId);
-    saveState();
   } else if (action === "goto-plan") {
     scrollToPlanCategory(actionEl.dataset.code);
   }
@@ -1424,16 +1533,27 @@ function applyItemUpdate(itemId, field, value, options = {}) {
 }
 
 function handleAnalysesSubmit(event) {
-  const form = event.target.closest("form[data-action='add-item']");
+  const form = event.target.closest("form[data-action='add-update']");
   if (!form) return;
   event.preventDefault();
-  const catId = form.dataset.catId;
-  const input = form.querySelector("input[name='name']");
-  const name = (input?.value || "").trim();
-  if (!name) return;
-  state.analyses.items.push(createItem(catId, name));
-  expandedCategories.add(catId);
-  form.reset();
+  const itemId = form.dataset.itemId;
+  const item = state.analyses.items.find((i) => i.id === itemId);
+  if (!item) return;
+  const data = new FormData(form);
+  const date = String(data.get("date") || "").trim();
+  const value = String(data.get("value") || "").trim();
+  const notes = String(data.get("notes") || "").trim();
+  if (!date && !value && !notes) return;
+  if (!Array.isArray(item.updates)) item.updates = [];
+  item.updates.push({
+    id: uid(),
+    date: date || new Date().toISOString().slice(0, 10),
+    value,
+    notes,
+    createdAt: new Date().toISOString()
+  });
+  item.updatedAt = new Date().toISOString();
+  expandedItems.add(itemId);
   saveState();
 }
 
