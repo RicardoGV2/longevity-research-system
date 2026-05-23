@@ -3,232 +3,27 @@
   const SYNC_SETTINGS_KEY = "longevityResearchSystem.syncSettings.v0.1";
 
   const DEFAULT_ITEMS = [
-    {
-      id: "scale",
-      category: "Home device",
-      name: "Scale",
-      type: "Device",
-      priority: "High",
-      status: "Need / pending",
-      measures: "Body weight and weekly trend.",
-      use: "Measure under consistent conditions: ideally morning, after bathroom, before food. Use weekly average, not isolated daily values.",
-      comparison: "Basic digital scale is enough for weight. Smart scales add body-fat estimates but can be noisy; treat BIA as trend-only.",
-      frequency: "Daily or 3–4x/week during baseline; weekly average for decisions.",
-      notes: "Core baseline device.",
-      photo: "",
-      photoUrl: ""
-    },
-    {
-      id: "tape-measure",
-      category: "Home device",
-      name: "Tape measure",
-      type: "Device",
-      priority: "High",
-      status: "Need / pending",
-      measures: "Waist, hip, neck and other circumferences.",
-      use: "Measure same anatomical point, same posture, same time of day. Take 2–3 readings and use the average.",
-      comparison: "Soft flexible tape is enough. Body-tape with locking loop can reduce technique variation.",
-      frequency: "Weekly or monthly depending on phase.",
-      notes: "Important for metabolic risk and body composition trend.",
-      photo: "",
-      photoUrl: ""
-    },
-    {
-      id: "bp-monitor",
-      category: "Home device",
-      name: "Blood pressure monitor",
-      type: "Device",
-      priority: "High",
-      status: "Need / pending",
-      measures: "Systolic pressure, diastolic pressure and pulse.",
-      use: "Sit quietly 5 minutes, feet on floor, cuff at heart level. Take 2 readings morning/evening for 7 days when creating baseline.",
-      comparison: "Upper-arm validated monitors are preferred over wrist monitors. Omron-type upper-arm devices are commonly used.",
-      frequency: "7-day baseline; then weekly/monthly or when experimenting with sodium, caffeine, stress or sleep.",
-      notes: "One of the highest-value home measurements.",
-      photo: "",
-      photoUrl: ""
-    },
-    {
-      id: "pulse-oximeter",
-      category: "Home device",
-      name: "Pulse oximeter",
-      type: "Device",
-      priority: "Medium",
-      status: "Need / pending",
-      measures: "Peripheral oxygen saturation SpO₂ and pulse.",
-      use: "Use on warm finger, still hand, no nail polish if possible. Wait until reading stabilizes.",
-      comparison: "Good for peripheral SpO₂ spot checks. It does not measure oxygen delivery in muscle, brain or organs.",
-      frequency: "Baseline spot checks, illness, breathing symptoms, altitude/travel, or sleep-related suspicion.",
-      notes: "Useful, but interpretation must be careful.",
-      photo: "",
-      photoUrl: ""
-    },
-    {
-      id: "wearable",
-      category: "Wearable",
-      name: "Smartwatch / ring wearable",
-      type: "Device",
-      priority: "High",
-      status: "Need / pending",
-      measures: "Steps, heart rate, resting HR, HRV, sleep, temperature and sometimes SpO₂.",
-      use: "Wear consistently. Focus on trends rather than single-day values. Compare subjective energy with wearable recovery metrics.",
-      comparison: "Watch is useful for activity and HR; rings can be strong for sleep comfort. Algorithms vary by brand.",
-      frequency: "Continuous daily tracking.",
-      notes: "Core for longitudinal trend tracking.",
-      photo: "",
-      photoUrl: ""
-    },
-    {
-      id: "chest-strap",
-      category: "Exercise device",
-      name: "Chest heart-rate strap",
-      type: "Device",
-      priority: "Medium",
-      status: "Need / pending",
-      measures: "More accurate heart rate during exercise.",
-      use: "Use during zone 2, intervals, recovery tests and exercise experiments.",
-      comparison: "Chest straps are typically more accurate than optical wrist HR during intense or irregular movement.",
-      frequency: "During structured cardio or tests.",
-      notes: "Useful for zone 2 and HR recovery.",
-      photo: "",
-      photoUrl: ""
-    },
-    {
-      id: "glucometer",
-      category: "Metabolic device",
-      name: "Glucometer",
-      type: "Device",
-      priority: "Medium",
-      status: "Need / pending",
-      measures: "Capillary blood glucose at specific moments.",
-      use: "Use fasting, pre-meal, 1h/2h post-meal when testing a specific meal. Wash hands first.",
-      comparison: "Cheaper than CGM, but only point-in-time readings. Good for targeted experiments.",
-      frequency: "Targeted experiments, not necessarily daily forever.",
-      notes: "Useful for food-response research.",
-      photo: "",
-      photoUrl: ""
-    },
-    {
-      id: "cgm",
-      category: "Metabolic device",
-      name: "Continuous glucose monitor",
-      type: "Device / Sensor",
-      priority: "Advanced",
-      status: "Research later",
-      measures: "Interstitial glucose trend over days.",
-      use: "Use for short experiment blocks to evaluate meals, sleep, stress, alcohol, exercise and eating order.",
-      comparison: "More informative than glucometer for patterns, but more expensive and can create over-interpretation.",
-      frequency: "10–14 day experimental blocks if justified.",
-      notes: "Useful after baseline food logging.",
-      photo: "",
-      photoUrl: ""
-    },
-    {
-      id: "ecg",
-      category: "Clinical study",
-      name: "12-lead ECG",
-      type: "Study",
-      priority: "Medium",
-      status: "Research later",
-      measures: "Electrical rhythm and conduction at rest.",
-      use: "Done in clinic. Useful before intense exercise if symptoms, family history or medical concern exist.",
-      comparison: "More complete than a smartwatch single-lead ECG. Does not measure exercise capacity.",
-      frequency: "Baseline if indicated; repeat based on symptoms/doctor advice.",
-      notes: "Clinical interpretation required.",
-      photo: "",
-      photoUrl: ""
-    },
-    {
-      id: "stress-test",
-      category: "Clinical / functional test",
-      name: "Exercise stress test",
-      type: "Study / Test",
-      priority: "Advanced",
-      status: "Research later",
-      measures: "Cardiac response to exercise, symptoms, ECG changes and functional tolerance.",
-      use: "Done supervised. Useful when evaluating safety or unexplained exertional symptoms.",
-      comparison: "Less complete than CPET for physiology, but more available and clinically useful for screening.",
-      frequency: "As clinically indicated.",
-      notes: "Not a casual home test.",
-      photo: "",
-      photoUrl: ""
-    },
-    {
-      id: "cpet",
-      category: "Clinical / functional test",
-      name: "CPET / VO₂ max",
-      type: "Study / Test",
-      priority: "Advanced",
-      status: "Research later",
-      measures: "VO₂ max, ventilatory thresholds and cardiorespiratory limitation.",
-      use: "Performed in specialized setting with mask and exercise protocol.",
-      comparison: "Gold-standard style test for aerobic capacity compared with wearable estimates.",
-      frequency: "Baseline and after training block if justified.",
-      notes: "High-information but higher cost/logistics.",
-      photo: "",
-      photoUrl: ""
-    },
-    {
-      id: "dexa",
-      category: "Clinical study",
-      name: "DEXA / DXA",
-      type: "Study",
-      priority: "Advanced",
-      status: "Research later",
-      measures: "Bone density, lean mass and fat distribution.",
-      use: "Use as baseline for muscle, fat and bone health when available.",
-      comparison: "More reliable than smart scale BIA for body composition and bone density.",
-      frequency: "Every 6–24 months depending on question.",
-      notes: "Useful for longevity mechanics and body composition.",
-      photo: "",
-      photoUrl: ""
-    },
-    {
-      id: "sleep-study",
-      category: "Clinical study",
-      name: "Sleep study / home sleep apnea test",
-      type: "Study",
-      priority: "Conditional",
-      status: "Research later",
-      measures: "Breathing interruptions, oxygen drops and sleep apnea risk.",
-      use: "Consider if snoring, witnessed apneas, daytime sleepiness or resistant hypertension.",
-      comparison: "Home sleep apnea test is simpler; polysomnography is more complete.",
-      frequency: "As indicated by symptoms or clinician.",
-      notes: "High value if apnea is suspected.",
-      photo: "",
-      photoUrl: ""
-    },
-    {
-      id: "blood-panel",
-      category: "Lab test",
-      name: "Longevity blood panel",
-      type: "Lab panel",
-      priority: "High",
-      status: "Need / pending",
-      measures: "CBC, metabolic panel, glucose, insulin, HbA1c, lipids, ApoB, Lp(a), hs-CRP, iron/ferritin, vitamin D, B12, folate, thyroid, liver and kidney markers.",
-      use: "Use to identify internal risk, deficiencies and baseline before supplements or aggressive interventions.",
-      comparison: "Broad panels are more useful when each marker has a decision rule. Avoid testing without a question.",
-      frequency: "Baseline, then 3–12 months depending on findings.",
-      notes: "Needs clinician/context for interpretation.",
-      photo: "",
-      photoUrl: ""
-    },
-    {
-      id: "air-monitor",
-      category: "Environment device",
-      name: "CO₂ / air quality monitor",
-      type: "Device",
-      priority: "Medium",
-      status: "Research later",
-      measures: "CO₂, PM2.5, VOCs, humidity and temperature depending on model.",
-      use: "Measure bedroom/workspace ventilation, humidity and potential air-quality issues.",
-      comparison: "CO₂ is useful for ventilation; PM/VOC sensors vary in quality by model.",
-      frequency: "Spot checks and seasonal monitoring.",
-      notes: "Useful for sleep and indoor environment.",
-      photo: "",
-      photoUrl: ""
-    }
+    { id: "scale", category: "Home device", name: "Scale", type: "Device", priority: "High", status: "Need / pending", measures: "Body weight and weekly trend.", use: "Measure under consistent conditions: morning, after bathroom, before food. Use weekly average.", comparison: "Basic digital scale is enough. Smart-scale body-fat is trend-only.", frequency: "Daily or 3–4x/week during baseline.", notes: "Core baseline device.", photo: "", photoUrl: "" },
+    { id: "tape-measure", category: "Home device", name: "Tape measure", type: "Device", priority: "High", status: "Need / pending", measures: "Waist, hip, neck and other circumferences.", use: "Measure same point, same posture, same time. Take 2–3 readings and average.", comparison: "Flexible tape is enough. Locking body tape reduces variation.", frequency: "Weekly or monthly.", notes: "Important for metabolic risk and body composition trend.", photo: "", photoUrl: "" },
+    { id: "bp-monitor", category: "Home device", name: "Blood pressure monitor", type: "Device", priority: "High", status: "Need / pending", measures: "Systolic pressure, diastolic pressure and pulse.", use: "Sit quietly 5 minutes, feet on floor, cuff at heart level. Take 2 readings.", comparison: "Upper-arm validated monitors are preferred over wrist monitors.", frequency: "7-day baseline, then periodic checks.", notes: "High-value home measurement.", photo: "", photoUrl: "" },
+    { id: "pulse-oximeter", category: "Home device", name: "Pulse oximeter", type: "Device", priority: "Medium", status: "Need / pending", measures: "Peripheral SpO₂ and pulse.", use: "Use on warm finger, still hand. Wait until reading stabilizes.", comparison: "Useful for spot checks; does not measure oxygen delivery in tissues.", frequency: "Spot checks if useful.", notes: "Interpret carefully.", photo: "", photoUrl: "" },
+    { id: "wearable", category: "Wearable", name: "Smartwatch / ring wearable", type: "Device", priority: "High", status: "Need / pending", measures: "Steps, HR, resting HR, HRV, sleep and sometimes SpO₂.", use: "Wear consistently. Focus on trends, not single-day values.", comparison: "Watches are useful for activity/HR; rings can be strong for sleep comfort.", frequency: "Continuous daily tracking.", notes: "Core for longitudinal tracking.", photo: "", photoUrl: "" },
+    { id: "chest-strap", category: "Exercise device", name: "Chest heart-rate strap", type: "Device", priority: "Medium", status: "Need / pending", measures: "More accurate exercise heart rate.", use: "Use for zone 2, intervals and recovery tests.", comparison: "Usually more accurate than wrist optical HR during intense movement.", frequency: "During structured cardio/tests.", notes: "Useful for zone 2 and HR recovery.", photo: "", photoUrl: "" },
+    { id: "glucometer", category: "Metabolic device", name: "Glucometer", type: "Device", priority: "Medium", status: "Need / pending", measures: "Capillary blood glucose at specific moments.", use: "Use fasting, pre-meal, 1h/2h post-meal for targeted experiments.", comparison: "Cheaper than CGM, but only point-in-time readings.", frequency: "Targeted experiments.", notes: "Useful for food-response research.", photo: "", photoUrl: "" },
+    { id: "cgm", category: "Metabolic device", name: "Continuous glucose monitor", type: "Device / Sensor", priority: "Advanced", status: "Research later", measures: "Interstitial glucose trends over days.", use: "Use for short experiment blocks around meals, sleep, stress and exercise.", comparison: "More informative than glucometer for patterns, but expensive and easy to over-interpret.", frequency: "10–14 day blocks if justified.", notes: "Useful after baseline food logging.", photo: "", photoUrl: "" },
+    { id: "ecg", category: "Clinical study", name: "12-lead ECG", type: "Study", priority: "Medium", status: "Research later", measures: "Electrical rhythm and conduction at rest.", use: "Done in clinic; useful before intense exercise if symptoms or risk exist.", comparison: "More complete than smartwatch single-lead ECG.", frequency: "If clinically indicated.", notes: "Clinical interpretation required.", photo: "", photoUrl: "" },
+    { id: "stress-test", category: "Clinical / functional test", name: "Exercise stress test", type: "Study / Test", priority: "Advanced", status: "Research later", measures: "Cardiac response to exercise and functional tolerance.", use: "Done supervised when safety or exertional symptoms need evaluation.", comparison: "Less complete than CPET but more available.", frequency: "As clinically indicated.", notes: "Not a casual home test.", photo: "", photoUrl: "" },
+    { id: "cpet", category: "Clinical / functional test", name: "CPET / VO₂ max", type: "Study / Test", priority: "Advanced", status: "Research later", measures: "VO₂ max, ventilatory thresholds and cardiorespiratory limitation.", use: "Specialized test with mask and exercise protocol.", comparison: "Gold-standard style test for aerobic capacity.", frequency: "Baseline and after training block if justified.", notes: "High information, higher logistics/cost.", photo: "", photoUrl: "" },
+    { id: "dexa", category: "Clinical study", name: "DEXA / DXA", type: "Study", priority: "Advanced", status: "Research later", measures: "Bone density, lean mass and fat distribution.", use: "Use as baseline for muscle, fat and bone health when available.", comparison: "More reliable than smart-scale BIA.", frequency: "Every 6–24 months depending on question.", notes: "Useful for longevity mechanics.", photo: "", photoUrl: "" },
+    { id: "sleep-study", category: "Clinical study", name: "Sleep study / home sleep apnea test", type: "Study", priority: "Conditional", status: "Research later", measures: "Breathing interruptions, oxygen drops and sleep apnea risk.", use: "Consider with snoring, apneas, daytime sleepiness or resistant hypertension.", comparison: "Home test is simpler; polysomnography is more complete.", frequency: "As indicated.", notes: "High value if apnea is suspected.", photo: "", photoUrl: "" },
+    { id: "blood-panel", category: "Lab test", name: "Longevity blood panel", type: "Lab panel", priority: "High", status: "Need / pending", measures: "CBC, metabolic panel, glucose, insulin, HbA1c, lipids, ApoB, Lp(a), hs-CRP, iron/ferritin, vitamin D, B12, folate, thyroid, liver and kidney markers.", use: "Identify internal risk, deficiencies and baseline before supplements/interventions.", comparison: "Useful only when each marker has a decision rule.", frequency: "Baseline, then 3–12 months depending on findings.", notes: "Needs clinical context.", photo: "", photoUrl: "" },
+    { id: "air-monitor", category: "Environment device", name: "CO₂ / air quality monitor", type: "Device", priority: "Medium", status: "Research later", measures: "CO₂, PM2.5, VOCs, humidity and temperature depending on model.", use: "Measure bedroom/workspace ventilation and indoor environment.", comparison: "CO₂ is useful for ventilation; PM/VOC sensor quality varies.", frequency: "Spot checks and seasonal monitoring.", notes: "Useful for sleep and indoor environment.", photo: "", photoUrl: "" }
   ];
+
+  let installed = false;
+  let hasRenderedOnce = false;
+  let mapState = null;
+  let filters = { search: "", category: "all", priority: "all", status: "all" };
 
   function uid() {
     return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -244,15 +39,18 @@
   }
 
   function loadMap() {
+    if (mapState) return mapState;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return { items: DEFAULT_ITEMS, updatedAt: new Date().toISOString() };
-      const parsed = JSON.parse(raw);
-      const items = Array.isArray(parsed.items) ? parsed.items : DEFAULT_ITEMS;
-      return { items: mergeDefaults(items), updatedAt: parsed.updatedAt || new Date().toISOString() };
+      if (!raw) mapState = { items: DEFAULT_ITEMS, updatedAt: new Date().toISOString() };
+      else {
+        const parsed = JSON.parse(raw);
+        mapState = { items: mergeDefaults(Array.isArray(parsed.items) ? parsed.items : []), updatedAt: parsed.updatedAt || new Date().toISOString() };
+      }
     } catch {
-      return { items: DEFAULT_ITEMS, updatedAt: new Date().toISOString() };
+      mapState = { items: DEFAULT_ITEMS, updatedAt: new Date().toISOString() };
     }
+    return mapState;
   }
 
   function mergeDefaults(items) {
@@ -264,120 +62,40 @@
     return merged;
   }
 
-  let mapState = loadMap();
-  let filters = { search: "", category: "all", priority: "all", status: "all" };
-
   function saveMap({ render = true } = {}) {
-    mapState.updatedAt = new Date().toISOString();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(mapState));
-    if (render) renderMap();
-  }
-
-  function syncSettings() {
+    const state = loadMap();
+    state.updatedAt = new Date().toISOString();
     try {
-      return JSON.parse(localStorage.getItem(SYNC_SETTINGS_KEY) || "{}");
-    } catch {
-      return {};
-    }
-  }
-
-  function mapSyncPath(settings) {
-    const base = settings.path || "sync/personal-sync.json";
-    if (base.includes("/")) return base.replace(/[^/]+$/, "measurement-map.json");
-    return "measurement-map.json";
-  }
-
-  function githubFileUrl(settings) {
-    const path = mapSyncPath(settings).split("/").map(encodeURIComponent).join("/");
-    return `https://api.github.com/repos/${encodeURIComponent(settings.owner)}/${encodeURIComponent(settings.repo)}/contents/${path}`;
-  }
-
-  function authHeaders(settings) {
-    return {
-      Accept: "application/vnd.github+json",
-      Authorization: `Bearer ${settings.token}`,
-      "X-GitHub-Api-Version": "2022-11-28"
-    };
-  }
-
-  function encodeBase64Unicode(str) {
-    return btoa(unescape(encodeURIComponent(str)));
-  }
-
-  function decodeBase64Unicode(str) {
-    return decodeURIComponent(escape(atob(str.replace(/\n/g, ""))));
-  }
-
-  async function getGitHubFile(settings) {
-    const response = await fetch(`${githubFileUrl(settings)}?ref=${encodeURIComponent(settings.branch || "main")}`, { headers: authHeaders(settings) });
-    if (response.status === 404) return null;
-    if (!response.ok) throw new Error(`GitHub fetch failed: ${response.status}`);
-    return response.json();
-  }
-
-  async function pullMap() {
-    const settings = syncSettings();
-    if (!settings.token || !settings.owner || !settings.repo) return setStatus("Missing GitHub sync settings in Data & Sync.", true);
-    try {
-      setStatus("Pulling measurement map from GitHub...");
-      const metadata = await getGitHubFile(settings);
-      if (!metadata) return setStatus(`No measurement map file found yet at ${mapSyncPath(settings)}. Push once first.`, true);
-      const payload = JSON.parse(decodeBase64Unicode(metadata.content));
-      mapState = { items: mergeDefaults(payload.items || []), updatedAt: payload.updatedAt || new Date().toISOString() };
-      saveMap();
-      setStatus(`Pulled measurement map. Remote update: ${payload.updatedAt || "unknown"}`);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (error) {
+      setStatus("Could not save Measurement Map locally. Photos may be too large for this browser storage.", true);
       console.error(error);
-      setStatus(error.message, true);
     }
+    if (render && isMapActive()) renderMap();
   }
 
-  async function pushMap() {
-    const settings = syncSettings();
-    if (!settings.token || !settings.owner || !settings.repo) return setStatus("Missing GitHub sync settings in Data & Sync.", true);
-    try {
-      setStatus("Pushing measurement map to GitHub...");
-      const metadata = await getGitHubFile(settings);
-      const payload = { schemaVersion: "measurement-map.v0.1", updatedAt: new Date().toISOString(), items: mapState.items };
-      const body = {
-        message: `Sync measurement map ${payload.updatedAt}`,
-        content: encodeBase64Unicode(JSON.stringify(payload, null, 2)),
-        branch: settings.branch || "main"
-      };
-      if (metadata?.sha) body.sha = metadata.sha;
-      const response = await fetch(githubFileUrl(settings), {
-        method: "PUT",
-        headers: { ...authHeaders(settings), "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
-      if (!response.ok) throw new Error(`GitHub push failed: ${response.status} ${await response.text()}`);
-      setStatus(`Pushed measurement map to ${mapSyncPath(settings)}.`);
-    } catch (error) {
-      console.error(error);
-      setStatus(error.message, true);
-    }
-  }
-
-  function setStatus(message, error = false) {
-    const el = document.getElementById("measurementMapStatus");
-    if (!el) return;
-    el.textContent = message;
-    el.style.color = error ? "#b91c1c" : "#647084";
+  function isMapActive() {
+    return document.getElementById("measurementMap")?.classList.contains("active");
   }
 
   function ensurePage() {
-    if (!document.querySelector(".tab[data-tab='measurementMap']")) {
+    let tab = document.querySelector(".tab[data-tab='measurementMap']");
+    if (!tab) {
       const tabs = document.querySelector(".tabs");
       const ref = document.querySelector(".tab[data-tab='measurements']");
-      const btn = document.createElement("button");
-      btn.className = "tab";
-      btn.dataset.tab = "measurementMap";
-      btn.textContent = "Measurement Map";
-      tabs?.insertBefore(btn, ref || null);
-      btn.addEventListener("click", () => {
+      tab = document.createElement("button");
+      tab.className = "tab";
+      tab.dataset.tab = "measurementMap";
+      tab.textContent = "Measurement Map";
+      tabs?.insertBefore(tab, ref || null);
+    }
+
+    if (!tab.dataset.mapListener) {
+      tab.dataset.mapListener = "1";
+      tab.addEventListener("click", () => {
         document.querySelectorAll(".tab").forEach((b) => b.classList.remove("active"));
         document.querySelectorAll(".panel").forEach((panel) => panel.classList.remove("active"));
-        btn.classList.add("active");
+        tab.classList.add("active");
         document.getElementById("measurementMap")?.classList.add("active");
         renderMap();
       });
@@ -391,7 +109,7 @@
         <div class="section-head">
           <div>
             <h2>Ideal map of measurements, tests, devices and studies</h2>
-            <p>A working catalog for devices, clinical studies, lab tests and functional measurements. Add photos now; later we can expand comparisons, instructions and decision rules.</p>
+            <p>A working catalog for devices, clinical studies, lab tests and functional measurements. Photos load only when this tab is opened.</p>
           </div>
           <div class="inline-actions">
             <button id="addMapItemBtn" type="button">+ Add item</button>
@@ -406,7 +124,7 @@
           <label><span>Status</span><select id="mapStatus"><option value="all">All</option></select></label>
         </div>
         <p id="measurementMapStatus" class="sync-status">Stored locally. Push/Pull uses the same GitHub settings, saved as <code>measurement-map.json</code>.</p>
-        <div id="measurementMapGrid" class="measurement-map-grid"></div>
+        <div id="measurementMapGrid" class="measurement-map-grid"><div class="map-empty">Open this tab to load the measurement catalog.</div></div>
       `;
       const measurements = document.getElementById("measurements");
       measurements?.parentElement?.insertBefore(section, measurements);
@@ -444,25 +162,17 @@
     document.head.appendChild(style);
   }
 
-  function categories() {
-    return [...new Set(mapState.items.map((i) => i.category || "Other"))].sort();
-  }
-
-  function priorities() {
-    return [...new Set(mapState.items.map((i) => i.priority || "Unspecified"))].sort();
-  }
-
-  function statuses() {
-    return [...new Set(mapState.items.map((i) => i.status || "Unspecified"))].sort();
+  function uniqueValues(field) {
+    return [...new Set(loadMap().items.map((i) => i[field] || "Unspecified"))].sort();
   }
 
   function populateFilters() {
     const cat = document.getElementById("mapCategory");
     const pri = document.getElementById("mapPriority");
     const stat = document.getElementById("mapStatus");
-    if (cat) cat.innerHTML = `<option value="all">All</option>${categories().map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("")}`;
-    if (pri) pri.innerHTML = `<option value="all">All</option>${priorities().map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("")}`;
-    if (stat) stat.innerHTML = `<option value="all">All</option>${statuses().map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("")}`;
+    if (cat) cat.innerHTML = `<option value="all">All</option>${uniqueValues("category").map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("")}`;
+    if (pri) pri.innerHTML = `<option value="all">All</option>${uniqueValues("priority").map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("")}`;
+    if (stat) stat.innerHTML = `<option value="all">All</option>${uniqueValues("status").map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("")}`;
     if (cat) cat.value = filters.category;
     if (pri) pri.value = filters.priority;
     if (stat) stat.value = filters.status;
@@ -470,7 +180,7 @@
 
   function filteredItems() {
     const q = filters.search.toLowerCase();
-    return mapState.items.filter((item) => {
+    return loadMap().items.filter((item) => {
       if (filters.category !== "all" && item.category !== filters.category) return false;
       if (filters.priority !== "all" && item.priority !== filters.priority) return false;
       if (filters.status !== "all" && item.status !== filters.status) return false;
@@ -486,6 +196,7 @@
     ensurePage();
     ensureStyles();
     populateFilters();
+    hasRenderedOnce = true;
     const grid = document.getElementById("measurementMapGrid");
     if (!grid) return;
     const items = filteredItems();
@@ -496,13 +207,9 @@
     const photo = item.photo || item.photoUrl;
     return `
       <article class="map-card" data-map-id="${escapeHtml(item.id)}">
-        <div class="map-photo">${photo ? `<img src="${escapeHtml(photo)}" alt="${escapeHtml(item.name)}">` : `<div>No photo yet<br><small>Add image below</small></div>`}</div>
+        <div class="map-photo">${photo ? `<img loading="lazy" src="${escapeHtml(photo)}" alt="${escapeHtml(item.name)}">` : `<div>No photo yet<br><small>Add image below</small></div>`}</div>
         <div class="map-body">
-          <div class="map-title">
-            <h3>${escapeHtml(item.name)}</h3>
-            <span class="map-chip">${escapeHtml(item.category)}</span>
-            <span class="map-chip">${escapeHtml(item.priority)}</span>
-          </div>
+          <div class="map-title"><h3>${escapeHtml(item.name)}</h3><span class="map-chip">${escapeHtml(item.category)}</span><span class="map-chip">${escapeHtml(item.priority)}</span></div>
           <div class="map-field"><span>Measures</span><p>${escapeHtml(item.measures)}</p></div>
           <div class="map-field"><span>How to use</span><p>${escapeHtml(item.use)}</p></div>
           <div class="map-field"><span>Comparison / notes</span><p>${escapeHtml(item.comparison)}</p></div>
@@ -522,26 +229,21 @@
             <textarea data-field="notes" placeholder="Notes">${escapeHtml(item.notes)}</textarea>
             <input data-field="photoUrl" value="${escapeHtml(item.photoUrl || "")}" placeholder="Photo URL (optional)">
             <input type="file" accept="image/*" data-action="photo">
-            <div class="map-actions">
-              <button type="button" class="secondary-dark" data-action="clear-photo">Clear photo</button>
-              <button type="button" class="danger" data-action="delete">Delete</button>
-            </div>
+            <div class="map-actions"><button type="button" class="secondary-dark" data-action="clear-photo">Clear photo</button><button type="button" class="danger" data-action="delete">Delete</button></div>
           </details>
         </div>
-      </article>
-    `;
+      </article>`;
   }
 
   function itemFromCard(card) {
     const id = card?.dataset?.mapId;
-    return mapState.items.find((item) => item.id === id);
+    return loadMap().items.find((item) => item.id === id);
   }
 
   async function handlePhotoInput(input, item) {
     const file = input.files?.[0];
-    if (!file || !item) return;
-    if (!file.type.startsWith("image/")) return;
-    const dataUrl = await resizeImage(file, 900, 0.82);
+    if (!file || !item || !file.type.startsWith("image/")) return;
+    const dataUrl = await resizeImage(file, 700, 0.72);
     item.photo = dataUrl;
     item.photoUrl = "";
     saveMap();
@@ -559,8 +261,7 @@
           const canvas = document.createElement("canvas");
           canvas.width = Math.max(1, Math.round(img.width * scale));
           canvas.height = Math.max(1, Math.round(img.height * scale));
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
           resolve(canvas.toDataURL("image/jpeg", quality));
         };
         img.src = reader.result;
@@ -570,42 +271,81 @@
   }
 
   function addItem() {
-    const item = {
-      id: uid(),
-      category: "Custom",
-      name: "New measurement / device",
-      type: "Device / Study",
-      priority: "Unspecified",
-      status: "Research later",
-      measures: "",
-      use: "",
-      comparison: "",
-      frequency: "",
-      notes: "",
-      photo: "",
-      photoUrl: ""
-    };
-    mapState.items.unshift(item);
+    loadMap().items.unshift({ id: uid(), category: "Custom", name: "New measurement / device", type: "Device / Study", priority: "Unspecified", status: "Research later", measures: "", use: "", comparison: "", frequency: "", notes: "", photo: "", photoUrl: "" });
     saveMap();
   }
 
+  function setStatus(message, error = false) {
+    const el = document.getElementById("measurementMapStatus");
+    if (!el) return;
+    el.textContent = message;
+    el.style.color = error ? "#b91c1c" : "#647084";
+  }
+
+  function syncSettings() {
+    try { return JSON.parse(localStorage.getItem(SYNC_SETTINGS_KEY) || "{}"); } catch { return {}; }
+  }
+  function mapSyncPath(settings) {
+    const base = settings.path || "sync/personal-sync.json";
+    return base.includes("/") ? base.replace(/[^/]+$/, "measurement-map.json") : "measurement-map.json";
+  }
+  function githubFileUrl(settings) {
+    const path = mapSyncPath(settings).split("/").map(encodeURIComponent).join("/");
+    return `https://api.github.com/repos/${encodeURIComponent(settings.owner)}/${encodeURIComponent(settings.repo)}/contents/${path}`;
+  }
+  function authHeaders(settings) {
+    return { Accept: "application/vnd.github+json", Authorization: `Bearer ${settings.token}`, "X-GitHub-Api-Version": "2022-11-28" };
+  }
+  function encodeBase64Unicode(str) { return btoa(unescape(encodeURIComponent(str))); }
+  function decodeBase64Unicode(str) { return decodeURIComponent(escape(atob(str.replace(/\n/g, "")))); }
+  async function getGitHubFile(settings) {
+    const response = await fetch(`${githubFileUrl(settings)}?ref=${encodeURIComponent(settings.branch || "main")}`, { headers: authHeaders(settings) });
+    if (response.status === 404) return null;
+    if (!response.ok) throw new Error(`GitHub fetch failed: ${response.status}`);
+    return response.json();
+  }
+  async function pullMap() {
+    const settings = syncSettings();
+    if (!settings.token || !settings.owner || !settings.repo) return setStatus("Missing GitHub sync settings in Data & Sync.", true);
+    try {
+      setStatus("Pulling measurement map from GitHub...");
+      const metadata = await getGitHubFile(settings);
+      if (!metadata) return setStatus(`No measurement map file found yet at ${mapSyncPath(settings)}. Push once first.`, true);
+      const payload = JSON.parse(decodeBase64Unicode(metadata.content));
+      mapState = { items: mergeDefaults(payload.items || []), updatedAt: payload.updatedAt || new Date().toISOString() };
+      saveMap();
+      setStatus(`Pulled measurement map. Remote update: ${payload.updatedAt || "unknown"}`);
+    } catch (error) { console.error(error); setStatus(error.message, true); }
+  }
+  async function pushMap() {
+    const settings = syncSettings();
+    if (!settings.token || !settings.owner || !settings.repo) return setStatus("Missing GitHub sync settings in Data & Sync.", true);
+    try {
+      setStatus("Pushing measurement map to GitHub...");
+      const metadata = await getGitHubFile(settings);
+      const payload = { schemaVersion: "measurement-map.v0.1", updatedAt: new Date().toISOString(), items: loadMap().items };
+      const body = { message: `Sync measurement map ${payload.updatedAt}`, content: encodeBase64Unicode(JSON.stringify(payload, null, 2)), branch: settings.branch || "main" };
+      if (metadata?.sha) body.sha = metadata.sha;
+      const response = await fetch(githubFileUrl(settings), { method: "PUT", headers: { ...authHeaders(settings), "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      if (!response.ok) throw new Error(`GitHub push failed: ${response.status} ${await response.text()}`);
+      setStatus(`Pushed measurement map to ${mapSyncPath(settings)}.`);
+    } catch (error) { console.error(error); setStatus(error.message, true); }
+  }
+
   function setupEvents() {
+    if (installed) return;
+    installed = true;
     document.addEventListener("input", (event) => {
       const target = event.target;
-      if (target?.id === "mapSearch") {
-        filters.search = target.value || "";
-        renderMap();
-        return;
-      }
+      if (target?.id === "mapSearch") { filters.search = target.value || ""; renderMap(); return; }
       const card = target?.closest?.(".map-card");
       const item = itemFromCard(card);
       if (!item || !target.dataset.field) return;
       item[target.dataset.field] = target.value;
       if (target.dataset.field === "photoUrl" && target.value.trim()) item.photo = "";
       clearTimeout(target._mapTimer);
-      target._mapTimer = setTimeout(() => saveMap(), 250);
+      target._mapTimer = setTimeout(() => saveMap({ render: isMapActive() }), 300);
     });
-
     document.addEventListener("change", (event) => {
       const target = event.target;
       if (target?.id === "mapCategory") { filters.category = target.value; renderMap(); return; }
@@ -613,26 +353,16 @@
       if (target?.id === "mapStatus") { filters.status = target.value; renderMap(); return; }
       if (target?.dataset?.action === "photo") handlePhotoInput(target, itemFromCard(target.closest(".map-card")));
     });
-
     document.addEventListener("click", (event) => {
       if (event.target?.id === "addMapItemBtn") addItem();
       if (event.target?.id === "pullMapBtn") pullMap();
       if (event.target?.id === "pushMapBtn") pushMap();
       const action = event.target?.dataset?.action;
       if (!action) return;
-      const card = event.target.closest(".map-card");
-      const item = itemFromCard(card);
+      const item = itemFromCard(event.target.closest(".map-card"));
       if (!item) return;
-      if (action === "clear-photo") {
-        item.photo = "";
-        item.photoUrl = "";
-        saveMap();
-      }
-      if (action === "delete") {
-        if (!confirm(`Delete ${item.name}?`)) return;
-        mapState.items = mapState.items.filter((x) => x.id !== item.id);
-        saveMap();
-      }
+      if (action === "clear-photo") { item.photo = ""; item.photoUrl = ""; saveMap(); }
+      if (action === "delete") { if (!confirm(`Delete ${item.name}?`)) return; mapState.items = loadMap().items.filter((x) => x.id !== item.id); saveMap(); }
     });
   }
 
@@ -640,7 +370,7 @@
     ensurePage();
     ensureStyles();
     setupEvents();
-    renderMap();
+    if (isMapActive()) renderMap();
   }
 
   document.addEventListener("DOMContentLoaded", () => setTimeout(install, 900));
