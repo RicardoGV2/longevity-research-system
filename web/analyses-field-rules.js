@@ -30,6 +30,38 @@
     return age >= 0 && age < 130 ? age : null;
   }
 
+  function applyRuleToItem(item) {
+    if (!item) return false;
+    const rule = ruleForName(item.name);
+    if (!rule) return false;
+    let changed = false;
+
+    if (rule.name && item.name !== rule.name) {
+      item.name = rule.name;
+      changed = true;
+    }
+    if (rule.kind && item.kind !== rule.kind) {
+      item.kind = rule.kind;
+      changed = true;
+    }
+    if (rule.hidePriority && item.priority !== "none") {
+      item.priority = "none";
+      changed = true;
+    }
+    if (rule.hideNotes && item.notes) {
+      item.notes = "";
+      changed = true;
+    }
+    if (rule.clearActionFields) {
+      if (item.actionability) { item.actionability = ""; changed = true; }
+      if (item.targetDate) { item.targetDate = ""; changed = true; }
+      if (item.cost) { item.cost = ""; changed = true; }
+      if (item.invasiveness) { item.invasiveness = ""; changed = true; }
+    }
+    if (changed) item.updatedAt = new Date().toISOString();
+    return changed;
+  }
+
   function migrateAnalyses(appState) {
     if (!appState?.analyses?.categories || !appState?.analyses?.items) return false;
     let changed = false;
@@ -47,31 +79,7 @@
     }
 
     for (const item of appState.analyses.items) {
-      const rule = ruleForName(item.name);
-      if (!rule) continue;
-
-      if (rule.name && item.name !== rule.name) {
-        item.name = rule.name;
-        changed = true;
-      }
-      if (rule.kind && item.kind !== rule.kind) {
-        item.kind = rule.kind;
-        changed = true;
-      }
-      if (rule.hidePriority && item.priority !== "none") {
-        item.priority = "none";
-        changed = true;
-      }
-      if (rule.hideNotes && item.notes) {
-        item.notes = "";
-        changed = true;
-      }
-      if (rule.clearActionFields) {
-        if (item.actionability) { item.actionability = ""; changed = true; }
-        if (item.targetDate) { item.targetDate = ""; changed = true; }
-        if (item.cost) { item.cost = ""; changed = true; }
-        if (item.invasiveness) { item.invasiveness = ""; changed = true; }
-      }
+      if (applyRuleToItem(item)) changed = true;
     }
 
     if (changed) appState.updatedAt = new Date().toISOString();
@@ -157,6 +165,39 @@
     document.head.appendChild(style);
   }
 
+  function stripHiddenFieldsFromRowHtml(item, html) {
+    const rule = ruleForName(item?.name);
+    if (!rule) return html;
+    let out = String(html || "");
+
+    // Prevent flicker by removing these controls before the DOM is inserted.
+    if (rule.hideNotes) {
+      out = out.replace(/\s*<label class="full-width">Notes[\s\S]*?<\/label>/, "");
+      out = out.replace(/\s*<input name="notes" type="text" placeholder="Optional notes" \/>/, "");
+    }
+    if (rule.hidePriority) {
+      out = out.replace(/<select class="inline-select priority[\s\S]*?<\/select>/, "");
+    }
+    if (rule.valueType === "date") {
+      out = out.replace(/<input name="value" type="text" placeholder="[^"]*" \/>/, `<input name="value" type="date" />`);
+    }
+    return out;
+  }
+
+  function installRenderItemGuard() {
+    try {
+      if (typeof renderItemRow !== "function" || renderItemRow.__fieldRulesGuarded) return;
+      const originalRenderItemRow = renderItemRow;
+      renderItemRow = function guardedRenderItemRow(item) {
+        applyRuleToItem(item);
+        return stripHiddenFieldsFromRowHtml(item, originalRenderItemRow(item));
+      };
+      renderItemRow.__fieldRulesGuarded = true;
+    } catch (error) {
+      console.warn("Could not install analysis render guard", error);
+    }
+  }
+
   function hideLabelByText(row, pattern) {
     row.querySelectorAll("label").forEach((label) => {
       if (pattern.test(label.textContent || "")) label.classList.add("field-rules-hidden");
@@ -235,6 +276,7 @@
   }
 
   function applyFieldRules({ rerender = false } = {}) {
+    installRenderItemGuard();
     const changed = migrateRuntimeState();
     if ((changed || rerender) && typeof renderAnalyses === "function") renderAnalyses();
     patchDom();
@@ -255,7 +297,11 @@
     if (event.target.closest("#analyses")) schedulePatch();
   });
 
-  // app.js runs before this file, so this is a one-time stable reconciliation after the core app initializes.
+  // app.js runs before this file. Install the render guard synchronously so the first render
+  // does not briefly insert Notes/priority/action fields for basic facts such as Birth date.
+  ensureStyles();
+  installRenderItemGuard();
+  migrateRuntimeState();
   setTimeout(() => applyFieldRules({ rerender: true }), 0);
   document.addEventListener("DOMContentLoaded", () => setTimeout(() => applyFieldRules({ rerender: true }), 500));
 })();
