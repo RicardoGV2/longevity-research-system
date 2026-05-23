@@ -37,8 +37,9 @@
         width: var(--plan-toc-width) !important;
         height: calc(100vh - ${TOP_OFFSET * 2}px) !important;
         max-height: calc(100vh - ${TOP_OFFSET * 2}px) !important;
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
         z-index: 80;
         box-shadow: 0 14px 36px rgba(15, 23, 42, 0.16);
       }
@@ -61,11 +62,23 @@
       }
 
       #plan .plan-toc-title {
+        flex: 0 0 auto;
         position: sticky;
         top: 0;
         z-index: 2;
         background: #fbfcff;
         padding-bottom: 8px;
+      }
+
+      #plan #planTocList {
+        min-height: 0;
+      }
+
+      #plan .plan-toc.is-following #planTocList {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-right: 3px;
       }
 
       #plan .plan-toc a.active {
@@ -85,7 +98,13 @@
           width: auto !important;
           height: auto !important;
           max-height: 290px !important;
+          overflow-y: auto !important;
+          display: block !important;
           box-shadow: none;
+        }
+
+        #plan .plan-toc.is-following #planTocList {
+          overflow: visible;
         }
 
         #plan .plan-toc-spacer.is-active {
@@ -161,17 +180,40 @@
     return current || headings[0];
   }
 
+  function scrollListToActiveLink(activeLink) {
+    const { tocList } = getPlanElements();
+    if (!tocList || !activeLink) return;
+
+    const listRect = tocList.getBoundingClientRect();
+    const activeRect = activeLink.getBoundingClientRect();
+    const padding = 28;
+    const isAbove = activeRect.top < listRect.top + padding;
+    const isBelow = activeRect.bottom > listRect.bottom - padding;
+
+    if (!isAbove && !isBelow) return;
+
+    const targetTop = activeLink.offsetTop - tocList.clientHeight * 0.45;
+    tocList.scrollTo({
+      top: Math.max(0, targetTop),
+      behavior: "smooth"
+    });
+  }
+
   function updateActiveLink() {
     const { tocList } = getPlanElements();
     if (!tocList) return;
 
     const current = findCurrentHeading();
     const currentId = current?.id;
+    let activeLink = null;
 
     tocList.querySelectorAll("a").forEach((link) => {
       const isActive = currentId && link.dataset.anchor === currentId;
       link.classList.toggle("active", Boolean(isActive));
+      if (isActive) activeLink = link;
     });
+
+    scrollListToActiveLink(activeLink);
   }
 
   function update() {
