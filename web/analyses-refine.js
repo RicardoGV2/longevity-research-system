@@ -1,6 +1,7 @@
 (() => {
   const STORAGE_KEY = "longevityResearchSystem.v0.1";
-  const MIGRATION_KEY = "longevityResearchSystem.analysesRefine.v0.2";
+  const MIGRATION_KEY = "longevityResearchSystem.analysesRefine.v0.3";
+  const RELOAD_KEY = "longevityResearchSystem.analysesRefineReload.v0.3";
   const PRIORITY_KIND_LABELS = new Set(["body measurement", "lab test", "clinical study", "functional test"]);
 
   function normalize(value) {
@@ -38,7 +39,7 @@
   function migrateLocalState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
+      if (!raw) return false;
       const state = JSON.parse(raw);
       let touched = false;
 
@@ -80,9 +81,19 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       }
       localStorage.setItem(MIGRATION_KEY, new Date().toISOString());
+      return touched;
     } catch (error) {
       console.warn("Analyses refinement migration failed", error);
+      return false;
     }
+  }
+
+  function maybeReloadAfterMigration() {
+    const touched = migrateLocalState();
+    if (!touched) return;
+    if (sessionStorage.getItem(RELOAD_KEY)) return;
+    sessionStorage.setItem(RELOAD_KEY, "1");
+    window.location.reload();
   }
 
   function itemNameFromRow(row) {
@@ -240,16 +251,20 @@
     document.head.appendChild(style);
   }
 
-  migrateLocalState();
+  maybeReloadAfterMigration();
 
   document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => {
+      maybeReloadAfterMigration();
       ensureStyles();
       patchUi();
-      setInterval(patchUi, 1000);
+      setInterval(() => {
+        migrateLocalState();
+        patchUi();
+      }, 1000);
       const root = document.body;
       const observer = new MutationObserver(() => requestAnimationFrame(patchUi));
       observer.observe(root, { childList: true, subtree: true });
-    }, 1200);
+    }, 1400);
   });
 })();
