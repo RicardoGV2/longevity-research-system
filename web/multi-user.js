@@ -20,6 +20,13 @@
       .replaceAll("'", "&#039;");
   }
 
+  function initials(name) {
+    const parts = String(name || "U").trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "U";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  }
+
   function emptyUserData() {
     return {
       dailyLogs: [],
@@ -69,14 +76,14 @@
       state.multiUser = {
         schemaVersion: PROFILE_SCHEMA,
         activeProfileId: id,
-        profiles: [{ id, name: "Me", createdAt: new Date().toISOString() }],
+        profiles: [{ id, name: "Ricardo", createdAt: new Date().toISOString() }],
         profileData: { [id]: extractUserData(state) }
       };
     }
 
     if (!Array.isArray(state.multiUser.profiles) || !state.multiUser.profiles.length) {
       const id = uid("profile");
-      state.multiUser.profiles = [{ id, name: "Me", createdAt: new Date().toISOString() }];
+      state.multiUser.profiles = [{ id, name: "Ricardo", createdAt: new Date().toISOString() }];
       state.multiUser.activeProfileId = id;
     }
 
@@ -118,9 +125,9 @@
     state.analyses.items = Array.isArray(state.analyses.items) ? state.analyses.items : [];
   }
 
-  function persistAndRender() {
+  function persistAndRender({ closeMenu = false } = {}) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    renderUserSwitcher();
+    renderUserMenu({ keepOpen: !closeMenu && isMenuOpen() });
     if (typeof syncPlanEditorFromState === "function") syncPlanEditorFromState();
     if (typeof render === "function") render();
   }
@@ -131,7 +138,7 @@
     captureActiveProfile();
     state.multiUser.activeProfileId = profileId;
     applyProfileData(profileId);
-    persistAndRender();
+    persistAndRender({ closeMenu: true });
   }
 
   function addProfile(name) {
@@ -146,7 +153,7 @@
     state.multiUser.profileData[id] = createBlankDataFromTemplate(state);
     state.multiUser.activeProfileId = id;
     applyProfileData(id);
-    persistAndRender();
+    persistAndRender({ closeMenu: false });
   }
 
   function renameActiveProfile(name) {
@@ -154,7 +161,7 @@
     profile.name = name.trim();
     profile.updatedAt = new Date().toISOString();
     captureActiveProfile();
-    persistAndRender();
+    persistAndRender({ closeMenu: false });
   }
 
   function deleteActiveProfile() {
@@ -170,17 +177,18 @@
     state.multiUser.profiles = state.multiUser.profiles.filter((p) => p.id !== current.id);
     state.multiUser.activeProfileId = state.multiUser.profiles[0].id;
     applyProfileData(state.multiUser.activeProfileId);
-    persistAndRender();
+    persistAndRender({ closeMenu: true });
   }
 
   function installSaveStateWrapper() {
     if (typeof saveState !== "function" || saveState.__multiUserWrapped) return;
+    const originalRender = typeof render === "function" ? render : null;
     saveState = function saveStateWithProfiles() {
       ensureProfiles();
       captureActiveProfile();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      renderUserSwitcher();
-      render();
+      renderUserMenu({ keepOpen: isMenuOpen() });
+      if (originalRender) originalRender();
     };
     saveState.__multiUserWrapped = true;
   }
@@ -196,6 +204,7 @@
         payload.profileSchemaVersion = PROFILE_SCHEMA;
         payload.activeProfileId = state.multiUser.activeProfileId;
         payload.profiles = clone(state.multiUser.profiles);
+        payload.profileData = clone(state.multiUser.profileData);
         return payload;
       };
       buildSyncPayload.__multiUserWrapped = true;
@@ -208,7 +217,7 @@
         ensureProfiles();
         applyProfileData(state.multiUser.activeProfileId);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        renderUserSwitcher();
+        renderUserMenu({ keepOpen: false });
         if (typeof render === "function") render();
       };
       pullFromGitHub.__multiUserWrapped = true;
@@ -220,103 +229,324 @@
     const style = document.createElement("style");
     style.id = "multiUserStyles";
     style.textContent = `
-      .user-switcher-card {
-        display: grid;
-        grid-template-columns: minmax(180px, 1fr) auto auto auto;
-        gap: 10px;
-        align-items: end;
-        margin: 14px 0 14px;
-        padding: 14px;
-        border: 1px solid var(--line);
-        border-radius: 18px;
-        background: #ffffff;
-        box-shadow: 0 14px 35px rgba(17, 24, 39, 0.04);
+      .user-switcher-card { display: none !important; }
+      .profile-menu-wrap { position: relative; display: inline-flex; align-items: center; }
+      .profile-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        min-height: 44px;
+        padding: 5px 7px 5px 5px;
+        border-radius: 999px;
+        color: white;
+        background: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
       }
-      .user-switcher-card label {
-        display: grid;
-        gap: 5px;
+      .profile-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        display: inline-grid;
+        place-items: center;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+        color: #1d4ed8;
+        background: linear-gradient(135deg, #eff6ff, #ffffff);
+        border: 1px solid rgba(255, 255, 255, 0.75);
+        flex: 0 0 auto;
+      }
+      .profile-button-name {
+        max-width: 124px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         font-weight: 800;
-        color: #647084;
       }
-      .user-switcher-card select {
-        min-height: 42px;
+      .profile-chevron { opacity: 0.84; font-size: 0.84rem; padding-right: 2px; }
+      .profile-popover {
+        position: absolute;
+        z-index: 80;
+        right: 0;
+        top: calc(100% + 10px);
+        width: min(340px, calc(100vw - 28px));
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.98);
+        color: #182033;
+        border: 1px solid var(--line);
+        box-shadow: 0 28px 70px rgba(15, 23, 42, 0.22);
+        padding: 14px;
+        transform-origin: top right;
       }
-      .user-switcher-card .active-user-pill {
-        justify-self: start;
-        align-self: center;
+      .profile-popover[hidden] { display: none !important; }
+      .profile-popover-head {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr);
+        gap: 11px;
+        align-items: center;
+        padding: 4px 4px 12px;
+        border-bottom: 1px solid var(--line);
+      }
+      .profile-popover .profile-avatar {
+        width: 44px;
+        height: 44px;
         background: #eef6ff;
         color: #1d4ed8;
-        border: 1px solid #bfdbfe;
-        border-radius: 999px;
-        padding: 6px 10px;
-        font-size: 0.86rem;
+        border-color: #bfdbfe;
+      }
+      .profile-hello {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.84rem;
+        font-weight: 650;
+      }
+      .profile-active-name {
+        margin: 2px 0 0;
+        font-size: 1.18rem;
+        font-weight: 900;
+        color: #111827;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .profile-menu-section {
+        padding: 12px 2px 0;
+      }
+      .profile-menu-section-title {
+        margin: 0 0 8px;
+        color: var(--muted);
+        font-size: 0.74rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+      }
+      .profile-list {
+        display: grid;
+        gap: 7px;
+      }
+      .profile-list-button {
+        width: 100%;
+        min-height: 44px;
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 9px;
+        border-radius: 14px;
+        padding: 6px 8px;
+        background: #ffffff;
+        color: #182033;
+        border: 1px solid var(--line);
+        text-align: left;
+      }
+      .profile-list-button.active {
+        background: #eef6ff;
+        border-color: #bfdbfe;
+        color: #1d4ed8;
+      }
+      .profile-list-button .profile-avatar {
+        width: 32px;
+        height: 32px;
+        background: #f8fafc;
+        color: #475569;
+        border-color: #dbe3ef;
+        box-shadow: none;
+      }
+      .profile-list-button.active .profile-avatar {
+        background: #dbeafe;
+        color: #1d4ed8;
+        border-color: #bfdbfe;
+      }
+      .profile-list-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         font-weight: 850;
       }
-      .user-switcher-card button {
-        white-space: nowrap;
+      .profile-active-mark {
+        font-size: 0.8rem;
+        font-weight: 850;
+        color: #1d4ed8;
       }
-      @media (max-width: 780px) {
-        .user-switcher-card {
-          grid-template-columns: 1fr 1fr;
-          align-items: stretch;
-        }
-        .user-switcher-card label,
-        .user-switcher-card .active-user-pill {
-          grid-column: 1 / -1;
-        }
+      .profile-actions-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
       }
-      @media (max-width: 460px) {
-        .user-switcher-card { grid-template-columns: 1fr; }
+      .profile-actions-grid button {
+        min-height: 42px;
+      }
+      .profile-actions-grid .danger { grid-column: 1 / -1; }
+      .profile-menu-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 70;
+        background: rgba(15, 23, 42, 0.14);
+      }
+      .profile-menu-backdrop[hidden] { display: none !important; }
+      @media (max-width: 640px) {
+        .profile-button {
+          padding: 5px;
+          min-width: 44px;
+          justify-content: center;
+        }
+        .profile-button-name,
+        .profile-chevron { display: none; }
+        .profile-popover {
+          position: fixed;
+          left: 12px;
+          right: 12px;
+          top: auto;
+          bottom: max(12px, env(safe-area-inset-bottom));
+          width: auto;
+          border-radius: 24px;
+          transform-origin: bottom center;
+        }
+        .profile-actions-grid { grid-template-columns: 1fr; }
       }
     `;
     document.head.appendChild(style);
   }
 
-  function ensureUserSwitcherElement() {
-    let card = document.getElementById("userSwitcherCard");
-    if (card) return card;
-    const main = document.querySelector("main");
-    const tabs = document.querySelector(".tabs");
-    if (!main || !tabs) return null;
-    card = document.createElement("section");
-    card.id = "userSwitcherCard";
-    card.className = "user-switcher-card";
-    tabs.parentNode.insertBefore(card, tabs);
-    return card;
+  function removeOldCard() {
+    document.getElementById("userSwitcherCard")?.remove();
   }
 
-  function renderUserSwitcher() {
+  function ensureProfileMenuElement() {
+    removeOldCard();
+    let wrap = document.getElementById("profileMenuWrap");
+    if (wrap) return wrap;
+
+    const headerActions = document.querySelector(".header-actions");
+    if (!headerActions) return null;
+
+    wrap = document.createElement("div");
+    wrap.id = "profileMenuWrap";
+    wrap.className = "profile-menu-wrap";
+    wrap.innerHTML = `
+      <button type="button" id="profileMenuButton" class="profile-button" aria-haspopup="dialog" aria-expanded="false" title="Switch user">
+        <span class="profile-avatar" aria-hidden="true">U</span>
+        <span class="profile-button-name">User</span>
+        <span class="profile-chevron" aria-hidden="true">▾</span>
+      </button>
+      <div id="profilePopover" class="profile-popover" role="dialog" aria-label="User profiles" hidden></div>
+    `;
+    headerActions.appendChild(wrap);
+
+    let backdrop = document.getElementById("profileMenuBackdrop");
+    if (!backdrop) {
+      backdrop = document.createElement("div");
+      backdrop.id = "profileMenuBackdrop";
+      backdrop.className = "profile-menu-backdrop";
+      backdrop.hidden = true;
+      document.body.appendChild(backdrop);
+      backdrop.addEventListener("click", () => closeMenu());
+    }
+
+    wrap.querySelector("#profileMenuButton")?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleMenu();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeMenu();
+    });
+
+    return wrap;
+  }
+
+  function isMenuOpen() {
+    return !document.getElementById("profilePopover")?.hidden;
+  }
+
+  function openMenu() {
+    const popover = document.getElementById("profilePopover");
+    const btn = document.getElementById("profileMenuButton");
+    const backdrop = document.getElementById("profileMenuBackdrop");
+    if (!popover || !btn) return;
+    popover.hidden = false;
+    btn.setAttribute("aria-expanded", "true");
+    if (backdrop) backdrop.hidden = false;
+  }
+
+  function closeMenu() {
+    const popover = document.getElementById("profilePopover");
+    const btn = document.getElementById("profileMenuButton");
+    const backdrop = document.getElementById("profileMenuBackdrop");
+    if (popover) popover.hidden = true;
+    if (btn) btn.setAttribute("aria-expanded", "false");
+    if (backdrop) backdrop.hidden = true;
+  }
+
+  function toggleMenu() {
+    if (isMenuOpen()) closeMenu();
+    else openMenu();
+  }
+
+  function renderUserMenu({ keepOpen = false } = {}) {
     ensureProfiles();
     installStyles();
-    const card = ensureUserSwitcherElement();
-    if (!card) return;
+    const wasOpen = keepOpen || isMenuOpen();
+    const wrap = ensureProfileMenuElement();
+    if (!wrap) return;
+
     const active = activeProfile();
-    card.innerHTML = `
-      <label>
-        Active user
-        <select id="profileSelect" aria-label="Active user profile">
-          ${state.multiUser.profiles.map((profile) => `<option value="${safeText(profile.id)}" ${profile.id === active.id ? "selected" : ""}>${safeText(profile.name)}</option>`).join("")}
-        </select>
-      </label>
-      <span class="active-user-pill">Editing: ${safeText(active.name)}</span>
-      <button type="button" id="addProfileBtn" class="secondary-dark">+ Add user</button>
-      <button type="button" id="renameProfileBtn" class="secondary-dark">Rename</button>
-      <button type="button" id="deleteProfileBtn" class="danger">Delete</button>
+    const button = wrap.querySelector("#profileMenuButton");
+    const buttonAvatar = button.querySelector(".profile-avatar");
+    const buttonName = button.querySelector(".profile-button-name");
+    const popover = wrap.querySelector("#profilePopover");
+
+    buttonAvatar.textContent = initials(active.name);
+    buttonName.textContent = active.name;
+    button.title = `Editing: ${active.name}`;
+
+    popover.innerHTML = `
+      <div class="profile-popover-head">
+        <span class="profile-avatar" aria-hidden="true">${safeText(initials(active.name))}</span>
+        <div>
+          <p class="profile-hello">Hello</p>
+          <p class="profile-active-name">${safeText(active.name)}</p>
+        </div>
+      </div>
+      <div class="profile-menu-section">
+        <p class="profile-menu-section-title">Switch user</p>
+        <div class="profile-list">
+          ${state.multiUser.profiles.map((profile) => `
+            <button type="button" class="profile-list-button ${profile.id === active.id ? "active" : ""}" data-profile-id="${safeText(profile.id)}">
+              <span class="profile-avatar" aria-hidden="true">${safeText(initials(profile.name))}</span>
+              <span class="profile-list-name">${safeText(profile.name)}</span>
+              ${profile.id === active.id ? `<span class="profile-active-mark">Active</span>` : ""}
+            </button>
+          `).join("")}
+        </div>
+      </div>
+      <div class="profile-menu-section">
+        <p class="profile-menu-section-title">Profile actions</p>
+        <div class="profile-actions-grid">
+          <button type="button" id="addProfileBtn" class="secondary-dark">+ Add user</button>
+          <button type="button" id="renameProfileBtn" class="secondary-dark">Rename</button>
+          <button type="button" id="deleteProfileBtn" class="danger">Delete active user</button>
+        </div>
+      </div>
     `;
 
-    card.querySelector("#profileSelect")?.addEventListener("change", (event) => switchProfile(event.target.value));
-    card.querySelector("#addProfileBtn")?.addEventListener("click", () => {
-      const name = prompt("Name for the new user profile:", "Wife");
+    popover.querySelectorAll(".profile-list-button").forEach((btn) => {
+      btn.addEventListener("click", () => switchProfile(btn.dataset.profileId));
+    });
+    popover.querySelector("#addProfileBtn")?.addEventListener("click", () => {
+      const name = prompt("Name for the new user profile:", "Janet");
       if (!name || !name.trim()) return;
       addProfile(name);
     });
-    card.querySelector("#renameProfileBtn")?.addEventListener("click", () => {
+    popover.querySelector("#renameProfileBtn")?.addEventListener("click", () => {
       const current = activeProfile();
       const name = prompt("Rename active user profile:", current.name);
       if (!name || !name.trim()) return;
       renameActiveProfile(name);
     });
-    card.querySelector("#deleteProfileBtn")?.addEventListener("click", deleteActiveProfile);
+    popover.querySelector("#deleteProfileBtn")?.addEventListener("click", deleteActiveProfile);
+
+    if (wasOpen) openMenu();
+    else closeMenu();
   }
 
   function init() {
@@ -324,10 +554,15 @@
     applyProfileData(state.multiUser.activeProfileId);
     installSaveStateWrapper();
     installSyncWrappers();
-    renderUserSwitcher();
+    renderUserMenu({ keepOpen: isMenuOpen() });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
 
   init();
-  document.addEventListener("DOMContentLoaded", () => setTimeout(init, 100));
+  document.addEventListener("DOMContentLoaded", () => {
+    [100, 600, 1400].forEach((delay) => setTimeout(() => {
+      installSyncWrappers();
+      init();
+    }, delay));
+  });
 })();
