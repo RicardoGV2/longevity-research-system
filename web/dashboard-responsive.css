@@ -1,0 +1,57 @@
+/* Dashboard layout refinements */
+
+/* The small dashboard counters should stay compact and readable.
+   The larger chart cards keep their existing responsive behavior. */
+#dashboard .cards {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+#dashboard .card {
+  min-height: 106px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+@media (max-width: 1080px) {
+  #dashboard .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  #dashboard .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  #dashboard .card {
+    min-height: 94px;
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  #dashboard .card span {
+    font-size: 0.82rem;
+    line-height: 1.2;
+  }
+
+  #dashboard .card strong {
+    font-size: clamp(1.65rem, 8vw, 2.1rem);
+    margin-top: 5px;
+  }
+}
+
+@media (max-width: 390px) {
+  #dashboard .cards {
+    gap: 10px;
+  }
+
+  #dashboard .card {
+    padding: 12px;
+  }
+
+  #dashboard .card span {
+    font-size: 0.78rem;
+  }
+}
