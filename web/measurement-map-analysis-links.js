@@ -62,6 +62,9 @@
     }
   };
 
+  let lastNavigationKey = "";
+  let lastNavigationAt = 0;
+
   function escapeHtml(value) {
     return String(value ?? "")
       .replaceAll("&", "&amp;")
@@ -69,6 +72,11 @@
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#039;");
+  }
+
+  function cssEscape(value) {
+    if (window.CSS?.escape) return CSS.escape(String(value));
+    return String(value).replace(/[^a-zA-Z0-9_-]/g, "\\$&");
   }
 
   function norm(value) {
@@ -199,11 +207,9 @@
     const tab = document.querySelector(`.tab[data-tab='${tabId}']`);
     const panel = document.getElementById(tabId);
     if (!tab || !panel) return false;
-    document.querySelectorAll(".tab").forEach((b) => b.classList.remove("active"));
-    document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
-    tab.classList.add("active");
-    panel.classList.add("active");
-    tab.dispatchEvent(new Event("click", { bubbles: true }));
+    if (typeof tab.click === "function") tab.click();
+    document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b === tab));
+    document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("active", p === panel));
     return true;
   }
 
@@ -212,6 +218,7 @@
     if (!item) return;
     activateTab("analyses");
     if (typeof analysisFilters === "object") {
+      analysisFilters.search = "";
       analysisFilters.category = item.categoryId || "all";
       analysisFilters.status = "all";
       analysisFilters.priority = "all";
@@ -222,13 +229,15 @@
     if (typeof expandedItems?.add === "function") expandedItems.add(item.id);
     if (typeof renderAnalyses === "function") renderAnalyses();
     setTimeout(() => {
+      const search = document.getElementById("analysisSearch");
+      if (search) search.value = "";
       const select = document.getElementById("filterCategory");
       if (select) select.value = item.categoryId || "all";
-      const row = document.querySelector(`#analysesCategories .analysis-item[data-item-id='${CSS.escape(item.id)}']`);
+      const row = document.querySelector(`#analysesCategories .analysis-item[data-item-id='${cssEscape(item.id)}']`);
       row?.scrollIntoView({ behavior: "smooth", block: "center" });
       row?.classList.add("link-flash");
       setTimeout(() => row?.classList.remove("link-flash"), 1600);
-    }, 80);
+    }, 90);
   }
 
   function openDevice(deviceId) {
@@ -249,30 +258,52 @@
     }, 40);
     setTimeout(() => {
       enhanceMapCards();
-      const card = document.querySelector(`#measurementMap .map-card[data-map-id='${CSS.escape(deviceId)}']`);
+      const card = document.querySelector(`#measurementMap .map-card[data-map-id='${cssEscape(deviceId)}']`);
       card?.scrollIntoView({ behavior: "smooth", block: "center" });
       card?.classList.add("link-flash");
       setTimeout(() => card?.classList.remove("link-flash"), 1600);
     }, 220);
   }
 
+  function navigateFromChip(chip, event) {
+    if (!chip) return false;
+    const isAnalysis = chip.classList.contains("map-analysis-chip");
+    const id = isAnalysis ? chip.dataset.analysisId : chip.dataset.deviceId;
+    if (!id) return false;
+
+    const key = `${isAnalysis ? "analysis" : "device"}:${id}`;
+    const now = Date.now();
+    if (key === lastNavigationKey && now - lastNavigationAt < 380) {
+      event?.preventDefault?.();
+      event?.stopPropagation?.();
+      return true;
+    }
+    lastNavigationKey = key;
+    lastNavigationAt = now;
+
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    window.getSelection?.()?.removeAllRanges?.();
+    if (isAnalysis) openAnalysis(id);
+    else openDevice(id);
+    return true;
+  }
+
   function installEvents() {
     if (window.__measurementMapAnalysisLinksEventsInstalled) return;
     window.__measurementMapAnalysisLinksEventsInstalled = true;
-    document.addEventListener("click", (event) => {
-      const analysisChip = event.target.closest?.(".map-analysis-chip");
-      if (analysisChip) {
-        event.preventDefault();
-        event.stopPropagation();
-        openAnalysis(analysisChip.dataset.analysisId);
-        return;
-      }
-      const deviceChip = event.target.closest?.(".analysis-device-chip");
-      if (deviceChip) {
-        event.preventDefault();
-        event.stopPropagation();
-        openDevice(deviceChip.dataset.deviceId);
-      }
+
+    const handleNavigation = (event) => {
+      const chip = event.target.closest?.("#measurementMap .map-analysis-chip, .analysis-device-chip");
+      if (chip) navigateFromChip(chip, event);
+    };
+
+    document.addEventListener("pointerup", handleNavigation, true);
+    document.addEventListener("click", handleNavigation, true);
+    document.addEventListener("keyup", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const chip = event.target.closest?.("#measurementMap .map-analysis-chip, .analysis-device-chip");
+      if (chip) navigateFromChip(chip, event);
     }, true);
   }
 
