@@ -126,8 +126,9 @@
   }
 
   function persistAndRender({ closeMenu = false } = {}) {
+    const keepMenuOpen = !closeMenu && isMenuOpen();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    renderUserMenu({ keepOpen: !closeMenu && isMenuOpen() });
+    renderUserMenu({ keepOpen: keepMenuOpen });
     if (typeof syncPlanEditorFromState === "function") syncPlanEditorFromState();
     if (typeof render === "function") render();
   }
@@ -186,8 +187,9 @@
     saveState = function saveStateWithProfiles() {
       ensureProfiles();
       captureActiveProfile();
+      const keepMenuOpen = isMenuOpen();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      renderUserMenu({ keepOpen: isMenuOpen() });
+      renderUserMenu({ keepOpen: keepMenuOpen });
       if (originalRender) originalRender();
     };
     saveState.__multiUserWrapped = true;
@@ -455,7 +457,8 @@
   }
 
   function isMenuOpen() {
-    return !document.getElementById("profilePopover")?.hidden;
+    const popover = document.getElementById("profilePopover");
+    return Boolean(popover && !popover.hidden);
   }
 
   function openMenu() {
@@ -485,10 +488,10 @@
   function renderUserMenu({ keepOpen = false } = {}) {
     ensureProfiles();
     installStyles();
-    const wasOpen = keepOpen || isMenuOpen();
     const wrap = ensureProfileMenuElement();
     if (!wrap) return;
 
+    const shouldOpenAfterRender = Boolean(keepOpen);
     const active = activeProfile();
     const button = wrap.querySelector("#profileMenuButton");
     const buttonAvatar = button.querySelector(".profile-avatar");
@@ -545,24 +548,25 @@
     });
     popover.querySelector("#deleteProfileBtn")?.addEventListener("click", deleteActiveProfile);
 
-    if (wasOpen) openMenu();
+    if (shouldOpenAfterRender) openMenu();
     else closeMenu();
   }
 
-  function init() {
+  function init({ keepMenuOpen = false } = {}) {
     ensureProfiles();
     applyProfileData(state.multiUser.activeProfileId);
     installSaveStateWrapper();
     installSyncWrappers();
-    renderUserMenu({ keepOpen: isMenuOpen() });
+    renderUserMenu({ keepOpen: keepMenuOpen });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
 
-  init();
+  init({ keepMenuOpen: false });
   document.addEventListener("DOMContentLoaded", () => {
     [100, 600, 1400].forEach((delay) => setTimeout(() => {
+      const keepOpen = isMenuOpen();
       installSyncWrappers();
-      init();
+      init({ keepMenuOpen: keepOpen });
     }, delay));
   });
 })();
