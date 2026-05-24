@@ -2,8 +2,8 @@
   const STORAGE_KEY = "longevityResearchSystem.v0.1";
 
   const RULES = new Map([
-    ["age", { name: "Birth date", kind: "personal_fact", valueType: "date", hidePriority: true, hideNotes: true, clearActionFields: true }],
-    ["birth date", { name: "Birth date", kind: "personal_fact", valueType: "date", hidePriority: true, hideNotes: true, clearActionFields: true }],
+    ["age", { name: "Birth date", kind: "personal_fact", valueType: "date", hideUpdateDate: true, hidePriority: true, hideNotes: true, clearActionFields: true }],
+    ["birth date", { name: "Birth date", kind: "personal_fact", valueType: "date", hideUpdateDate: true, hidePriority: true, hideNotes: true, clearActionFields: true }],
     ["height", { kind: "personal_fact", hidePriority: true, hideNotes: true, clearActionFields: true }],
     ["actual weight (scale)", { name: "Weight", kind: "personal_fact", hidePriority: true, hideNotes: true, clearActionFields: true }],
     ["weight", { name: "Weight", kind: "personal_fact", hidePriority: true, hideNotes: true, clearActionFields: true }],
@@ -12,8 +12,42 @@
     ["homa-ir (calculated)", { kind: "personal_fact", hidePriority: true, hideNotes: true, clearActionFields: true }]
   ]);
 
+  const KIND_LABELS = {
+    all: "All",
+    personal_fact: "Personal fact",
+    body_measurement: "Body measurement",
+    lab_test: "Lab test",
+    clinical_study: "Clinical study",
+    functional_test: "Functional test",
+    wearable_metric: "Wearable metric",
+    subjective_log: "Subjective log",
+    nutrition_log: "Nutrition log",
+    lifestyle_factor: "Lifestyle factor",
+    equipment: "Equipment",
+    questionnaire: "Self-assessment"
+  };
+
+  const KIND_DOTS = {
+    all: "●",
+    personal_fact: "●",
+    body_measurement: "●",
+    lab_test: "●",
+    clinical_study: "●",
+    functional_test: "●",
+    wearable_metric: "●",
+    subjective_log: "●",
+    nutrition_log: "●",
+    lifestyle_factor: "●",
+    equipment: "●",
+    questionnaire: "●"
+  };
+
   function normalize(value) {
     return String(value || "").trim().toLowerCase();
+  }
+
+  function cssSafe(value) {
+    return String(value || "").replace(/[^a-z0-9_-]/gi, "_");
   }
 
   function ruleForName(name) {
@@ -106,6 +140,62 @@
     }
   }
 
+  function ensureKindFilterState() {
+    try {
+      if (typeof analysisFilters !== "undefined" && !analysisFilters.kind) analysisFilters.kind = "all";
+    } catch {}
+  }
+
+  function currentKindFilter() {
+    try { return analysisFilters.kind || "all"; } catch { return "all"; }
+  }
+
+  function setKindFilter(value) {
+    try { analysisFilters.kind = value || "all"; } catch {}
+  }
+
+  function kindOptions() {
+    let kinds = Object.keys(KIND_LABELS).filter((k) => k !== "all");
+    try {
+      const used = new Set((state?.analyses?.items || []).map((i) => i.kind || "questionnaire"));
+      kinds = kinds.filter((k) => used.has(k));
+    } catch {}
+    return ["all", ...kinds];
+  }
+
+  function ensureKindFilter() {
+    const filters = document.querySelector(".analyses-filters");
+    if (!filters || document.getElementById("filterKind")) return;
+    const label = document.createElement("label");
+    label.id = "analysisKindFilterLabel";
+    label.innerHTML = `<span>Type / tag</span><select id="filterKind" class="kind-filter-select"></select>`;
+    filters.appendChild(label);
+    label.querySelector("select")?.addEventListener("change", (event) => {
+      setKindFilter(event.target.value);
+      updateKindSelectClass();
+      patchDom();
+    });
+  }
+
+  function populateKindFilter() {
+    const select = document.getElementById("filterKind");
+    if (!select) return;
+    const current = currentKindFilter();
+    select.innerHTML = kindOptions().map((kind) => {
+      const label = KIND_LABELS[kind] || kind;
+      return `<option value="${kind}">${KIND_DOTS[kind] || "●"} ${label}</option>`;
+    }).join("");
+    select.value = kindOptions().includes(current) ? current : "all";
+    if (select.value !== current) setKindFilter(select.value);
+    updateKindSelectClass();
+  }
+
+  function updateKindSelectClass() {
+    const select = document.getElementById("filterKind");
+    if (!select) return;
+    select.className = `kind-filter-select kind-filter-${cssSafe(select.value || "all")}`;
+  }
+
   function ensureStyles() {
     if (document.getElementById("analysesFieldRulesStyles")) return;
     const style = document.createElement("style");
@@ -113,6 +203,7 @@
     style.textContent = `
       .analysis-item .field-rules-hidden { display: none !important; }
       .computed-age { background: #effaf3; color: #047a44; }
+
       .analysis-item {
         padding: 0 !important;
         overflow: hidden;
@@ -120,8 +211,10 @@
       }
       .analysis-item > .item-row {
         position: relative;
-        align-items: flex-start;
-        padding: 12px 12px 10px 16px !important;
+        display: flex;
+        align-items: center;
+        gap: 7px 8px;
+        padding: 10px 12px 9px 16px !important;
         border-bottom: 1px solid rgba(223, 228, 238, 0.9);
         background: linear-gradient(90deg, #f8fbff 0%, #ffffff 58%);
       }
@@ -135,31 +228,81 @@
         background: var(--accent);
         opacity: 0.72;
       }
-      .analysis-item .status-dot { margin-top: 8px; }
+      .analysis-item .status-dot {
+        order: 0;
+        margin-top: 0 !important;
+        align-self: center;
+        flex: 0 0 auto;
+      }
       .analysis-item .item-name {
-        flex-basis: 100%;
+        order: 1;
+        flex: 1 1 calc(100% - 58px) !important;
         min-width: 0;
-        padding: 0 0 4px !important;
-        margin-bottom: 2px;
-        font-size: clamp(1.04rem, 1.7vw, 1.24rem) !important;
-        line-height: 1.25;
+        padding: 0 !important;
+        margin: 0 !important;
+        font-size: clamp(1.02rem, 1.6vw, 1.2rem) !important;
+        line-height: 1.18;
         font-weight: 850 !important;
         color: #111827;
         letter-spacing: -0.015em;
       }
+      .analysis-item .icon-btn {
+        order: 2;
+        margin: 0 !important;
+        padding: 2px 6px !important;
+        align-self: center;
+        flex: 0 0 auto;
+      }
+      .analysis-item .kind-chip {
+        order: 3;
+        margin-left: 18px;
+      }
+      .analysis-item .inline-select.status { order: 4; }
+      .analysis-item .inline-select.priority { order: 5; }
+      .analysis-item .latest-update { order: 6; }
       .analysis-item .kind-chip,
       .analysis-item .latest-update,
-      .analysis-item .inline-select,
-      .analysis-item .icon-btn { margin-top: 2px; }
+      .analysis-item .inline-select { margin-top: 0 !important; }
       .analysis-item .item-details {
         margin-top: 0;
-        padding: 12px;
-        border-top: 0;
+        padding: 10px 12px 12px !important;
+        border-top: 0 !important;
         background: #ffffff;
       }
+      .analysis-item .updates-block {
+        border-top: 0 !important;
+        padding-top: 2px !important;
+        margin-top: 0 !important;
+      }
+      .analysis-item .updates-head {
+        padding-top: 0 !important;
+        margin-top: 0 !important;
+      }
+      .analysis-item .add-update-form {
+        margin-top: 8px !important;
+      }
+      .analysis-item[data-kind-filter-hidden="true"],
+      .category-card[data-kind-filter-empty="true"] { display: none !important; }
+
+      .kind-chip { border: 1px solid transparent; }
+      .kind-chip-personal_fact, .kind-filter-personal_fact { background: #eef6ff !important; color: #1d4ed8 !important; border-color: #bfdbfe !important; }
+      .kind-chip-body_measurement, .kind-filter-body_measurement { background: #ecfeff !important; color: #0e7490 !important; border-color: #a5f3fc !important; }
+      .kind-chip-lab_test, .kind-filter-lab_test { background: #fef2f2 !important; color: #b91c1c !important; border-color: #fecaca !important; }
+      .kind-chip-clinical_study, .kind-filter-clinical_study { background: #faf5ff !important; color: #7e22ce !important; border-color: #e9d5ff !important; }
+      .kind-chip-functional_test, .kind-filter-functional_test { background: #fff7ed !important; color: #c2410c !important; border-color: #fed7aa !important; }
+      .kind-chip-wearable_metric, .kind-filter-wearable_metric { background: #eef2ff !important; color: #4338ca !important; border-color: #c7d2fe !important; }
+      .kind-chip-subjective_log, .kind-filter-subjective_log { background: #fdf2f8 !important; color: #be185d !important; border-color: #fbcfe8 !important; }
+      .kind-chip-nutrition_log, .kind-filter-nutrition_log { background: #ecfdf5 !important; color: #047857 !important; border-color: #bbf7d0 !important; }
+      .kind-chip-lifestyle_factor, .kind-filter-lifestyle_factor { background: #f0fdf4 !important; color: #15803d !important; border-color: #bbf7d0 !important; }
+      .kind-chip-equipment, .kind-filter-equipment { background: #f8fafc !important; color: #475569 !important; border-color: #cbd5e1 !important; }
+      .kind-chip-questionnaire, .kind-filter-questionnaire { background: #fffbeb !important; color: #a16207 !important; border-color: #fde68a !important; }
+      .kind-filter-all { background: #ffffff !important; color: #111827 !important; }
+
       @media (max-width: 560px) {
-        .analysis-item > .item-row { padding: 12px 10px 10px 14px !important; }
-        .analysis-item .item-name { font-size: 1.08rem !important; }
+        .analysis-item > .item-row { padding: 9px 10px 8px 14px !important; gap: 6px; }
+        .analysis-item .item-name { font-size: 1.05rem !important; }
+        .analysis-item .kind-chip { margin-left: 16px; }
+        .analysis-item .inline-select.status { min-width: 0; flex: 1 1 150px; }
       }
     `;
     document.head.appendChild(style);
@@ -167,10 +310,14 @@
 
   function stripHiddenFieldsFromRowHtml(item, html) {
     const rule = ruleForName(item?.name);
-    if (!rule) return html;
     let out = String(html || "");
+    const kind = item?.kind || "questionnaire";
 
-    // Prevent flicker by removing these controls before the DOM is inserted.
+    out = out.replace(/<li class="analysis-item([^\"]*)"/, `<li class="analysis-item$1" data-kind="${kind}"`);
+    out = out.replace(/<span class="kind-chip"/g, `<span class="kind-chip kind-chip-${cssSafe(kind)}"`);
+
+    if (!rule) return out;
+
     if (rule.hideNotes) {
       out = out.replace(/\s*<label class="full-width">Notes[\s\S]*?<\/label>/, "");
       out = out.replace(/\s*<input name="notes" type="text" placeholder="Optional notes" \/>/, "");
@@ -178,8 +325,11 @@
     if (rule.hidePriority) {
       out = out.replace(/<select class="inline-select priority[\s\S]*?<\/select>/, "");
     }
+    if (rule.hideUpdateDate) {
+      out = out.replace(/\s*<input name="date" type="date" value="[^"]*" required \/>/, "");
+    }
     if (rule.valueType === "date") {
-      out = out.replace(/<input name="value" type="text" placeholder="[^"]*" \/>/, `<input name="value" type="date" />`);
+      out = out.replace(/<input name="value" type="text" placeholder="[^"]*" \/>/, `<input name="value" type="date" aria-label="Birth date" />`);
     }
     return out;
   }
@@ -195,6 +345,21 @@
       renderItemRow.__fieldRulesGuarded = true;
     } catch (error) {
       console.warn("Could not install analysis render guard", error);
+    }
+  }
+
+  function installCategoryFilterLabelGuard() {
+    try {
+      if (typeof populateCategoryFilter !== "function" || populateCategoryFilter.__allLabelGuarded) return;
+      const originalPopulateCategoryFilter = populateCategoryFilter;
+      populateCategoryFilter = function populateCategoryFilterAllLabel() {
+        originalPopulateCategoryFilter();
+        const first = document.querySelector("#filterCategory option[value='all']");
+        if (first) first.textContent = "All";
+      };
+      populateCategoryFilter.__allLabelGuarded = true;
+    } catch (error) {
+      console.warn("Could not install category label guard", error);
     }
   }
 
@@ -223,11 +388,15 @@
       hideLabelByText(row, /^\s*Notes\s*/i);
       row.querySelector(".add-update-form input[name='notes']")?.classList.add("field-rules-hidden");
     }
+    if (rule.hideUpdateDate) {
+      row.querySelector(".add-update-form input[name='date']")?.classList.add("field-rules-hidden");
+    }
 
     const valueInput = row.querySelector(".add-update-form input[name='value']");
     if (valueInput && rule.valueType) {
       valueInput.type = rule.valueType;
-      valueInput.placeholder = rule.name || title.textContent || "Value";
+      valueInput.placeholder = "";
+      valueInput.setAttribute("aria-label", rule.name || title.textContent || "Value");
     }
   }
 
@@ -263,19 +432,38 @@
 
     document.querySelectorAll("#filterCategory option").forEach((option) => {
       if (/^Q\./i.test(option.textContent || "")) option.remove();
+      if (option.value === "all") option.textContent = "All";
+    });
+  }
+
+  function applyKindFilterToDom() {
+    const wanted = currentKindFilter();
+    document.querySelectorAll(".analysis-item").forEach((row) => {
+      const kind = row.dataset.kind || "questionnaire";
+      row.dataset.kindFilterHidden = wanted !== "all" && kind !== wanted ? "true" : "false";
+    });
+
+    document.querySelectorAll(".category-card").forEach((card) => {
+      const visibleRows = [...card.querySelectorAll(".analysis-item")].filter((row) => row.dataset.kindFilterHidden !== "true");
+      card.dataset.kindFilterEmpty = wanted !== "all" && visibleRows.length === 0 ? "true" : "false";
     });
   }
 
   function patchDom() {
     ensureStyles();
+    ensureKindFilterState();
+    ensureKindFilter();
+    populateKindFilter();
     patchQArtifacts();
     document.querySelectorAll(".analysis-item").forEach((row) => {
       patchBasicRow(row);
       patchBirthDateAge(row);
     });
+    applyKindFilterToDom();
   }
 
   function applyFieldRules({ rerender = false } = {}) {
+    installCategoryFilterLabelGuard();
     installRenderItemGuard();
     const changed = migrateRuntimeState();
     if ((changed || rerender) && typeof renderAnalyses === "function") renderAnalyses();
@@ -297,9 +485,9 @@
     if (event.target.closest("#analyses")) schedulePatch();
   });
 
-  // app.js runs before this file. Install the render guard synchronously so the first render
-  // does not briefly insert Notes/priority/action fields for basic facts such as Birth date.
   ensureStyles();
+  ensureKindFilterState();
+  installCategoryFilterLabelGuard();
   installRenderItemGuard();
   migrateRuntimeState();
   setTimeout(() => applyFieldRules({ rerender: true }), 0);
