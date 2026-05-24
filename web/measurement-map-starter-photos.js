@@ -75,6 +75,13 @@
     document.head.appendChild(style);
   }
 
+  function hasRealImage(photo) {
+    const img = photo?.querySelector?.("img");
+    if (!img) return false;
+    const src = img.getAttribute("src") || "";
+    return !src.startsWith("data:image/svg+xml");
+  }
+
   function patchVisibleStarterImages() {
     addStarterClass();
     document.querySelectorAll(".map-card").forEach((card) => {
@@ -82,35 +89,59 @@
       const src = STARTER_IMAGES[id];
       if (!src) return;
       const photo = card.querySelector(".map-photo");
-      if (!photo || photo.querySelector("img")) return;
+      if (!photo || hasRealImage(photo)) return;
+
+      const existing = photo.querySelector("img");
+      if (existing && existing.getAttribute("src") === src) return;
+
       photo.classList.add("map-starter-photo");
       const title = STARTER_IMAGE_LABELS[id]?.title || "Measurement item";
       photo.innerHTML = `<img loading="lazy" src="${src}" alt="${escapeXml(title)} starter image">`;
     });
   }
 
-  function installRenderMapWrapper() {
-    if (typeof renderMap !== "function" || renderMap.__starterPhotosWrapped) return;
-    const originalRenderMap = renderMap;
-    renderMap = function renderMapWithStarterPhotos(...args) {
-      const result = originalRenderMap.apply(this, args);
-      requestAnimationFrame(patchVisibleStarterImages);
-      return result;
-    };
-    renderMap.__starterPhotosWrapped = true;
+  function installGlobalObserver() {
+    if (window.__measurementMapStarterPhotoObserverInstalled) return;
+    window.__measurementMapStarterPhotoObserverInstalled = true;
+
+    const observer = new MutationObserver(() => {
+      window.clearTimeout(window.__measurementMapStarterPhotoTimer);
+      window.__measurementMapStarterPhotoTimer = window.setTimeout(patchVisibleStarterImages, 40);
+    });
+
+    const target = document.body || document.documentElement;
+    if (target) observer.observe(target, { childList: true, subtree: true });
+  }
+
+  function installInteractionHooks() {
+    if (window.__measurementMapStarterPhotoHooksInstalled) return;
+    window.__measurementMapStarterPhotoHooksInstalled = true;
+
+    document.addEventListener("click", (event) => {
+      if (event.target.closest?.(".tab[data-tab='measurementMap'], #mapSearch, #mapCategory, #mapPriority, #mapStatus")) {
+        [0, 80, 250, 700].forEach((delay) => setTimeout(patchVisibleStarterImages, delay));
+      }
+    }, true);
+
+    document.addEventListener("input", (event) => {
+      if (event.target?.id === "mapSearch") setTimeout(patchVisibleStarterImages, 80);
+    }, true);
+
+    document.addEventListener("change", (event) => {
+      if (["mapCategory", "mapPriority", "mapStatus"].includes(event.target?.id)) setTimeout(patchVisibleStarterImages, 80);
+    }, true);
+  }
+
+  function runRepeatedPatch() {
+    [0, 150, 500, 1000, 2000, 3500].forEach((delay) => setTimeout(patchVisibleStarterImages, delay));
   }
 
   function init() {
-    installRenderMapWrapper();
-    patchVisibleStarterImages();
+    installGlobalObserver();
+    installInteractionHooks();
+    runRepeatedPatch();
   }
 
-  const observer = new MutationObserver(() => patchVisibleStarterImages());
-  document.addEventListener("DOMContentLoaded", () => {
-    init();
-    const grid = document.getElementById("measurementMapGrid");
-    if (grid) observer.observe(grid, { childList: true, subtree: true });
-    [500, 1200, 2200].forEach((delay) => setTimeout(init, delay));
-  });
+  document.addEventListener("DOMContentLoaded", init);
   init();
 })();
