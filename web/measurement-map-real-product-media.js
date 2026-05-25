@@ -81,9 +81,8 @@
     return googleSearch(name);
   }
 
-  function realProductImageUrl(link) {
-    if (/google\.[^/]+\/search/i.test(link)) return "";
-    return `https://api.microlink.io/?url=${encodeURIComponent(link)}&embed=image.url`;
+  function searchProductImage(name) {
+    return `https://tse1.mm.bing.net/th?q=${encodeURIComponent(`${name} product photo`)}&w=320&h=240&c=7&rs=1&p=0&o=5&pid=1.7`;
   }
 
   function amazonInfo(name) {
@@ -94,23 +93,18 @@
     return available ? { points: 1, text: "Likely on Amazon.ie" } : { points: 0, text: "Check Amazon.ie" };
   }
 
-  function applyPhoto(card, name, link) {
+  function applyPhoto(card, name) {
     const photo = card.querySelector(".option-photo-preview");
     if (!photo) return;
     const manual = card.querySelector("[data-existing-option-field='imageUrl']")?.value?.trim();
-    const src = manual || realProductImageUrl(link);
-    photo.classList.remove("starter-product-image", "source-product-preview", "photo-error");
-    if (!src) {
-      photo.classList.add("photo-error");
-      photo.innerHTML = `<span>Product image needs direct source<br><small>Use Find photo</small></span>`;
-      return;
-    }
-    photo.classList.add("has-image", manual ? "real-product-image" : "source-product-image");
+    const src = manual || searchProductImage(name);
+    photo.classList.remove("starter-product-image", "source-product-preview", "source-product-image", "photo-error");
+    photo.classList.add("has-image", manual ? "real-product-image" : "search-product-image");
     photo.innerHTML = `<img loading="lazy" src="${esc(src)}" alt="${esc(name)}">`;
     const img = photo.querySelector("img");
     img?.addEventListener("error", () => {
       photo.classList.add("photo-error");
-      photo.innerHTML = `<span>Image blocked<br><small>Use Find photo</small></span>`;
+      photo.innerHTML = `<span>Image unavailable<br><small>Use Find photo</small></span>`;
     }, { once: true });
   }
 
@@ -173,7 +167,7 @@
       const name = nameFromCard(card);
       const link = directLink(name, card.querySelector("[data-existing-option-field='url']")?.value);
       applyLinks(card, name, link);
-      applyPhoto(card, name, link);
+      applyPhoto(card, name);
       applyAmazonMetric(card, amazonInfo(name));
     });
   }
@@ -183,7 +177,7 @@
     const style = document.createElement("style");
     style.id = "measurementMapRealProductMediaStyles";
     style.textContent = `
-      #measurementMap .source-product-image img,
+      #measurementMap .search-product-image img,
       #measurementMap .real-product-image img { object-fit: contain !important; background:#fff; }
       #measurementMap .photo-error { background:#f8fafc!important; border-style:dashed!important; }
       #measurementMap .photo-error span { color:#64748b; font-size:.68rem; font-weight:900; text-align:center; line-height:1.1; padding:4px; }
