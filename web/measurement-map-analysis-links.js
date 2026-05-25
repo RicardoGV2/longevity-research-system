@@ -131,31 +131,40 @@
     document.querySelectorAll("#measurementMap .map-edit").forEach((edit) => { edit.hidden = true; });
   }
 
+  function removeLegacyLinkBlocks(card, panel) {
+    card.querySelectorAll(".map-analysis-links").forEach((section) => {
+      if (!panel.contains(section)) section.remove();
+    });
+    card.querySelectorAll(".map-analysis-links-source-only").forEach((section) => section.remove());
+  }
+
   function ensureMapLinks(card) {
     const deviceId = card?.dataset?.mapId;
     if (!deviceId || !DEVICE_RULES[deviceId]) return;
-    const body = card.querySelector(".map-body");
-    if (!body) return;
-    let box = card.querySelector(".map-analysis-links");
+    const panel = card.querySelector(".map-info-panel[data-map-info-panel='analyses']");
+    if (!panel) return;
+
+    removeLegacyLinkBlocks(card, panel);
+
+    let box = panel.querySelector(".map-analysis-links.inside-links-panel");
     if (!box) {
       box = document.createElement("section");
-      box.className = "map-analysis-links";
-      const panels = card.querySelector(".map-info-panels");
-      const edit = card.querySelector(".map-edit");
-      if (panels) panels.insertAdjacentElement("afterend", box);
-      else body.insertBefore(box, edit || null);
+      box.className = "map-analysis-links inside-links-panel";
+      panel.innerHTML = "";
+      panel.appendChild(box);
     }
 
     const analyses = analysesForDevice(deviceId);
     box.innerHTML = `
-      <div class="link-box-head">
-        <span>Used by analyses</span>
+      <div class="link-box-head compact-link-box-head">
+        <span>Analyses using this device</span>
         <small>${analyses.length ? `${analyses.length} linked` : "No linked analysis yet"}</small>
       </div>
       ${analyses.length ? `
-        <div class="link-chip-row">
-          ${analyses.slice(0, 14).map((item) => `
-            <button type="button" class="map-analysis-chip" data-analysis-id="${escapeHtml(item.id)}" title="Open this analysis">
+        <p class="link-help">Click one to open its analysis card.</p>
+        <div class="link-chip-row compact-link-chip-row">
+          ${analyses.map((item) => `
+            <button type="button" class="map-analysis-chip" data-analysis-id="${escapeHtml(item.id)}" title="Open ${escapeHtml(item.name)}">
               <span>${escapeHtml(categoryLabel(item))}</span>${escapeHtml(item.name)}
             </button>`).join("")}
         </div>
@@ -317,13 +326,19 @@
         display: none !important;
       }
 
-      #measurementMap .map-analysis-links {
-        border: 1px solid #dbeafe;
+      #measurementMap .map-body > .map-analysis-links,
+      #measurementMap .map-analysis-links-source-only {
+        display: none !important;
+      }
+
+      #measurementMap .map-info-panel[data-map-info-panel="analyses"] > .map-analysis-links.inside-links-panel {
+        border: 1px solid #dbe5f3;
         border-radius: 18px;
-        background: linear-gradient(135deg, #f8fbff 0%, #eff6ff 100%);
+        background: #ffffff;
         padding: 12px;
         display: grid;
         gap: 9px;
+        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.015);
       }
 
       .link-box-head {
@@ -342,8 +357,19 @@
       }
 
       .link-box-head small {
-        color: #2563eb;
-        font-weight: 800;
+        color: #334155;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        padding: 4px 8px;
+        font-weight: 900;
+      }
+
+      .link-help {
+        margin: -2px 0 1px;
+        color: #64748b;
+        font-size: 0.84rem;
+        font-weight: 750;
       }
 
       .link-chip-row,
@@ -353,9 +379,15 @@
         gap: 7px;
       }
 
+      .compact-link-chip-row {
+        max-height: 250px;
+        overflow: auto;
+        padding-right: 3px;
+      }
+
       .map-analysis-chip,
       .analysis-device-chip {
-        border: 1px solid #bfdbfe;
+        border: 1px solid #dbe5f3;
         background: #ffffff;
         color: #1d4ed8;
         border-radius: 999px;
@@ -367,6 +399,12 @@
         cursor: pointer;
       }
 
+      .map-analysis-chip:hover,
+      .analysis-device-chip:hover {
+        border-color: #93c5fd;
+        background: #f8fbff;
+      }
+
       .map-analysis-chip span {
         display: inline-grid;
         place-items: center;
@@ -374,8 +412,8 @@
         height: 20px;
         border-radius: 999px;
         margin-right: 5px;
-        background: #eff6ff;
-        color: #1d4ed8;
+        background: #f1f5f9;
+        color: #2563eb;
         font-size: 0.72rem;
       }
 
