@@ -5,6 +5,7 @@
     ["use", "How to use", "How to use it", false],
     ["limits", "Limits", "Limits / comparison", false],
     ["frequency", "Frequency", "How often", false],
+    ["supplies", "Supplies", "Supplies / consumables", true],
     ["analyses", "Links", "Analyses using this device", true],
     ["deviceComparison", "Research", "Device comparison research", true],
     ["notes", "Notes", "Notes", false]
@@ -76,12 +77,19 @@
     return `<p>${escapeHtml(note)}</p><div class="device-options-editor" data-device-options-for="${escapeHtml(id)}"><div class="device-options-loading">Loading comparison options...</div></div>`;
   }
 
+  function suppliesHtml(card) {
+    const existing = card.querySelector(".map-info-panel[data-map-info-panel='supplies']");
+    if (existing?.innerHTML?.trim()) return existing.innerHTML;
+    return `<div class="supplies-loading">Loading supplies...</div>`;
+  }
+
   function values(card) {
     return {
       measures: fieldText(card, "Measures") || hiddenValue(card, "measures"),
       use: fieldText(card, "How to use") || hiddenValue(card, "use"),
       limits: fieldText(card, "Comparison / notes") || hiddenValue(card, "comparison"),
       frequency: hiddenValue(card, "frequency"),
+      supplies: suppliesHtml(card),
       analyses: linksHtml(card),
       deviceComparison: researchHtml(card),
       notes: hiddenValue(card, "notes")
@@ -161,6 +169,7 @@
       #measurementMap .final-map-panels { min-width: 0; }
       #measurementMap .map-info-panel { border: 1px solid #dbe5f3; border-radius: 18px; background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%); padding: 14px 15px; min-height: 104px; overflow: hidden; }
       #measurementMap .map-info-panel[data-map-info-panel="analyses"] { background: linear-gradient(135deg, #f8fbff 0%, #fff 100%); border-color: #dbeafe; }
+      #measurementMap .map-info-panel[data-map-info-panel="supplies"] { background: #ffffff; border-color: #e2e8f0; overflow: visible; }
       #measurementMap .map-info-panel[data-map-info-panel="deviceComparison"] { background: linear-gradient(135deg, #f5f3ff 0%, #fff 100%); border-color: #ddd6fe; }
       #measurementMap .map-info-panel > span { display: block; color: #64748b; font-size: 0.76rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 7px; }
       #measurementMap .map-info-panel p { margin: 0; line-height: 1.35; font-size: clamp(0.94rem, 1.8vw, 1.04rem); color: #1f2937; }
@@ -207,5 +216,6 @@
   document.addEventListener("DOMContentLoaded", init);
   window.addEventListener("measurementMapTabsRebuilt", () => setTimeout(() => rebuildAll(false), 50));
   window.addEventListener("measurementMapDeviceOptionsChanged", () => setTimeout(() => rebuildAll(false), 80));
+  window.addEventListener("measurementMapSuppliesChanged", () => setTimeout(() => rebuildAll(false), 80));
   init();
 })();
