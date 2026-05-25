@@ -73,6 +73,31 @@
     return `${currency}${cost}`;
   }
 
+  function productSearchUrl(option) {
+    const name = String(option?.name || "device").trim() || "device";
+    return option?.url || `https://www.google.com/search?q=${encodeURIComponent(`${name} buy Ireland`)}`;
+  }
+
+  function imageSearchUrl(option) {
+    const name = String(option?.name || "device").trim() || "device";
+    return option?.imageSearchUrl || `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(`${name} product photo`)}`;
+  }
+
+  function seedMissingLinks(item) {
+    let changed = false;
+    optionsFor(item).forEach((option) => {
+      if (!String(option.url || "").trim()) {
+        option.url = productSearchUrl(option);
+        changed = true;
+      }
+      if (!String(option.imageSearchUrl || "").trim()) {
+        option.imageSearchUrl = imageSearchUrl(option);
+        changed = true;
+      }
+    });
+    return changed;
+  }
+
   function updateTitleChip(card) {
     const deviceId = card?.dataset?.mapId;
     if (!deviceId) return;
@@ -92,10 +117,22 @@
     title.appendChild(chip);
   }
 
+  function fieldInput(label, field, value, placeholder = "1–5", inputmode = "decimal") {
+    return `
+      <label class="option-field">
+        <span>${escapeHtml(label)}</span>
+        <input data-existing-option-field="${escapeHtml(field)}" value="${escapeHtml(value || "")}" placeholder="${escapeHtml(placeholder)}" inputmode="${escapeHtml(inputmode)}">
+      </label>
+    `;
+  }
+
   function renderOptions(deviceId) {
     const { state, item } = itemFor(deviceId);
     const holder = document.querySelector(`.device-options-editor[data-device-options-for='${CSS.escape(deviceId)}']`);
     if (!holder || !item) return;
+
+    if (seedMissingLinks(item)) writeState(state);
+
     const options = sortedOptions(item);
     const selected = selectedOption(item);
 
@@ -108,10 +145,7 @@
         <button type="button" class="secondary-dark add-device-option-btn" data-device-id="${escapeHtml(deviceId)}">+ Add option</button>
       </div>
       ${options.length ? `
-        <div class="device-options-table" role="table" aria-label="Device comparison options">
-          <div class="device-option-row header" role="row">
-            <span>Name</span><span>Cost</span><span>Quality</span><span>Accuracy</span><span>Ease</span><span>Export</span><span>Availability</span><span>Privacy</span><span>Score</span><span>Best</span>
-          </div>
+        <div class="device-options-list" role="list" aria-label="Device comparison options">
           ${options.map((option) => renderOptionRow(deviceId, option)).join("")}
         </div>
       ` : `<p class="device-options-empty">No options yet. Add candidates here as you research devices, services or tests.</p>`}
@@ -125,7 +159,8 @@
         <input data-option-field="dataExport" placeholder="Export 1–5" inputmode="decimal">
         <input data-option-field="availability" placeholder="Availability 1–5" inputmode="decimal">
         <input data-option-field="privacy" placeholder="Privacy 1–5" inputmode="decimal">
-        <input data-option-field="url" placeholder="Link / source optional">
+        <input data-option-field="url" placeholder="Where to find it / source link">
+        <input data-option-field="imageUrl" placeholder="Product photo URL">
         <textarea data-option-field="notes" placeholder="Notes: why this option is good/bad"></textarea>
         <button type="button" class="save-device-option-btn" data-device-id="${escapeHtml(deviceId)}">Save option</button>
       </div>
@@ -136,23 +171,66 @@
 
   function renderOptionRow(deviceId, option) {
     const score = scoreOption(option);
+    const url = productSearchUrl(option);
+    const photoSearch = imageSearchUrl(option);
+    const imageUrl = String(option.imageUrl || "").trim();
     return `
-      <div class="device-option-row" role="row" data-device-id="${escapeHtml(deviceId)}" data-option-id="${escapeHtml(option.id)}">
-        <input data-existing-option-field="name" value="${escapeHtml(option.name || "")}" placeholder="Name">
-        <input data-existing-option-field="cost" value="${escapeHtml(option.cost || "")}" placeholder="Cost" inputmode="decimal">
-        <input data-existing-option-field="quality" value="${escapeHtml(option.quality || "")}" placeholder="1–5" inputmode="decimal">
-        <input data-existing-option-field="accuracy" value="${escapeHtml(option.accuracy || "")}" placeholder="1–5" inputmode="decimal">
-        <input data-existing-option-field="ease" value="${escapeHtml(option.ease || "")}" placeholder="1–5" inputmode="decimal">
-        <input data-existing-option-field="dataExport" value="${escapeHtml(option.dataExport || "")}" placeholder="1–5" inputmode="decimal">
-        <input data-existing-option-field="availability" value="${escapeHtml(option.availability || "")}" placeholder="1–5" inputmode="decimal">
-        <input data-existing-option-field="privacy" value="${escapeHtml(option.privacy || "")}" placeholder="1–5" inputmode="decimal">
-        <strong>${score}</strong>
-        <div class="option-actions">
-          <button type="button" class="select-device-option-btn ${option.selected ? "selected" : ""}" data-device-id="${escapeHtml(deviceId)}" data-option-id="${escapeHtml(option.id)}">${option.selected ? "Selected" : "Select"}</button>
-          <button type="button" class="delete-device-option-btn" data-device-id="${escapeHtml(deviceId)}" data-option-id="${escapeHtml(option.id)}">×</button>
+      <article class="device-option-card" role="listitem" data-device-id="${escapeHtml(deviceId)}" data-option-id="${escapeHtml(option.id)}">
+        <div class="device-option-card-head">
+          <div class="option-photo-preview ${imageUrl ? "has-image" : ""}">
+            ${imageUrl ? `<img loading="lazy" src="${escapeHtml(imageUrl)}" alt="${escapeHtml(option.name || "Device option")}">` : `<span>No product photo</span>`}
+          </div>
+          <div class="option-title-block">
+            <label class="option-field option-name-field">
+              <span>Name</span>
+              <input data-existing-option-field="name" value="${escapeHtml(option.name || "")}" placeholder="Name / model / provider">
+            </label>
+            <div class="option-meta-row">
+              <strong>${escapeHtml(formatCost(option))}</strong>
+              <span>Score ${score}</span>
+              ${option.selected ? `<em>Selected</em>` : ""}
+            </div>
+          </div>
+          <div class="option-actions">
+            <button type="button" class="select-device-option-btn ${option.selected ? "selected" : ""}" data-device-id="${escapeHtml(deviceId)}" data-option-id="${escapeHtml(option.id)}">${option.selected ? "Selected" : "Select"}</button>
+            <button type="button" class="delete-device-option-btn" data-device-id="${escapeHtml(deviceId)}" data-option-id="${escapeHtml(option.id)}">×</button>
+          </div>
         </div>
-        <textarea class="option-notes" data-existing-option-field="notes" placeholder="Notes">${escapeHtml(option.notes || "")}</textarea>
-      </div>`;
+
+        <div class="option-metric-grid">
+          ${fieldInput("Cost", "cost", option.cost, "Cost", "decimal")}
+          ${fieldInput("Quality", "quality", option.quality)}
+          ${fieldInput("Accuracy", "accuracy", option.accuracy)}
+          ${fieldInput("Ease", "ease", option.ease)}
+          ${fieldInput("Export", "dataExport", option.dataExport)}
+          ${fieldInput("Availability", "availability", option.availability)}
+          ${fieldInput("Privacy", "privacy", option.privacy)}
+          <div class="option-score-box"><span>Score</span><strong>${score}</strong></div>
+        </div>
+
+        <div class="option-source-grid">
+          <label class="option-field">
+            <span>Where to find it</span>
+            <input data-existing-option-field="url" value="${escapeHtml(url)}" placeholder="Product/store/source link">
+          </label>
+          <label class="option-field">
+            <span>Product photo URL</span>
+            <input data-existing-option-field="imageUrl" value="${escapeHtml(imageUrl)}" placeholder="Paste image URL">
+          </label>
+        </div>
+
+        <div class="option-link-actions">
+          <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Open link</a>
+          <a class="secondary-link" href="${escapeHtml(photoSearch)}" target="_blank" rel="noopener noreferrer">Find photo</a>
+          <button type="button" class="paste-option-photo-btn" data-device-id="${escapeHtml(deviceId)}" data-option-id="${escapeHtml(option.id)}">Paste photo URL</button>
+          ${imageUrl ? `<button type="button" class="use-option-photo-btn" data-device-id="${escapeHtml(deviceId)}" data-option-id="${escapeHtml(option.id)}">Use as card photo</button>` : ""}
+        </div>
+
+        <label class="option-field option-notes-field">
+          <span>Notes</span>
+          <textarea class="option-notes" data-existing-option-field="notes" placeholder="Notes">${escapeHtml(option.notes || "")}</textarea>
+        </label>
+      </article>`;
   }
 
   function renderAllOptions() {
@@ -168,9 +246,18 @@
     const options = optionsFor(item);
     const option = options.find((entry) => entry.id === optionId);
     if (!option) return;
-    mutator(option, options);
+    mutator(option, options, item);
     writeState(state);
     renderOptions(deviceId);
+  }
+
+  function updateCardPhoto(deviceId, imageUrl, alt) {
+    const card = document.querySelector(`#measurementMap .map-card[data-map-id='${CSS.escape(deviceId)}']`);
+    const photo = card?.querySelector(".map-photo");
+    if (photo && imageUrl) {
+      photo.classList.remove("map-starter-photo");
+      photo.innerHTML = `<img loading="lazy" src="${escapeHtml(imageUrl)}" alt="${escapeHtml(alt || "Device photo")}">`;
+    }
   }
 
   function installEvents() {
@@ -191,7 +278,7 @@
         const { state, item } = itemFor(deviceId);
         const form = document.querySelector(`.device-option-form[data-device-option-form='${CSS.escape(deviceId)}']`);
         if (!item || !form) return;
-        const option = { id: uid(), selected: false };
+        const option = { id: uid(), selected: false, currency: "€" };
         form.querySelectorAll("[data-option-field]").forEach((input) => {
           option[input.dataset.optionField] = input.value?.trim() || "";
         });
@@ -217,20 +304,42 @@
         item.deviceOptions = optionsFor(item).filter((entry) => entry.id !== del.dataset.optionId);
         writeState(state);
         renderOptions(del.dataset.deviceId);
+        return;
+      }
+
+      const pastePhoto = event.target.closest?.(".paste-option-photo-btn");
+      if (pastePhoto) {
+        const url = prompt("Paste the product image URL:");
+        if (url) {
+          mutateOption(pastePhoto.dataset.deviceId, pastePhoto.dataset.optionId, (option) => {
+            option.imageUrl = url.trim();
+          });
+        }
+        return;
+      }
+
+      const usePhoto = event.target.closest?.(".use-option-photo-btn");
+      if (usePhoto) {
+        mutateOption(usePhoto.dataset.deviceId, usePhoto.dataset.optionId, (option, _options, item) => {
+          if (!option.imageUrl) return;
+          item.photoUrl = option.imageUrl;
+          item.photo = option.imageUrl;
+          updateCardPhoto(usePhoto.dataset.deviceId, option.imageUrl, option.name || item.name);
+        });
       }
     }, true);
 
     document.addEventListener("input", (event) => {
       const input = event.target.closest?.("[data-existing-option-field]");
       if (!input) return;
-      const row = input.closest(".device-option-row[data-device-id][data-option-id]");
+      const row = input.closest("[data-device-id][data-option-id]");
       if (!row) return;
       clearTimeout(input._deviceOptionTimer);
       input._deviceOptionTimer = setTimeout(() => {
         mutateOption(row.dataset.deviceId, row.dataset.optionId, (option) => {
           option[input.dataset.existingOptionField] = input.value;
         });
-      }, 350);
+      }, 450);
     }, true);
   }
 
@@ -244,6 +353,7 @@
         color: #6d28d9;
         border: 1px solid #ddd6fe;
       }
+
       #measurementMap .device-options-summary {
         display: flex;
         justify-content: space-between;
@@ -255,80 +365,144 @@
         padding: 10px;
         margin: 10px 0;
       }
+
       #measurementMap .device-options-summary strong,
-      #measurementMap .device-options-summary span {
-        display: block;
-      }
-      #measurementMap .device-options-summary span {
-        color: #64748b;
-        font-size: 0.86rem;
-        margin-top: 2px;
-      }
-      #measurementMap .device-options-table {
+      #measurementMap .device-options-summary span { display: block; }
+      #measurementMap .device-options-summary span { color: #64748b; font-size: 0.86rem; margin-top: 2px; }
+
+      #measurementMap .device-options-list {
         display: grid;
-        gap: 7px;
-        overflow-x: auto;
+        gap: 12px;
         padding-bottom: 4px;
       }
-      #measurementMap .device-option-row {
+
+      #measurementMap .device-option-card {
         display: grid;
-        grid-template-columns: minmax(150px, 1.4fr) 82px repeat(6, 76px) 56px 116px;
-        gap: 6px;
-        align-items: center;
-        min-width: 980px;
-        border-radius: 12px;
-        background: #ffffff;
+        gap: 10px;
         border: 1px solid #e5e7eb;
-        padding: 7px;
+        border-radius: 17px;
+        background: #ffffff;
+        padding: 11px;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.045);
       }
-      #measurementMap .device-option-row.header {
-        background: #f8fafc;
+
+      #measurementMap .device-option-card-head {
+        display: grid;
+        grid-template-columns: 82px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+      }
+
+      #measurementMap .option-photo-preview {
+        width: 78px;
+        height: 78px;
+        border-radius: 13px;
+        border: 1px dashed #bfdbfe;
+        background: #eff6ff;
+        display: grid;
+        place-items: center;
         color: #64748b;
-        font-size: 0.76rem;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
+        font-size: 0.72rem;
+        font-weight: 850;
+        text-align: center;
+        overflow: hidden;
       }
-      #measurementMap .device-option-row input,
-      #measurementMap .device-option-row textarea,
+
+      #measurementMap .option-photo-preview.has-image { border-style: solid; background: #ffffff; }
+      #measurementMap .option-photo-preview img { width: 100%; height: 100%; object-fit: contain; }
+
+      #measurementMap .option-title-block { display: grid; gap: 6px; min-width: 0; }
+      #measurementMap .option-meta-row { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; color: #64748b; font-size: 0.82rem; font-weight: 850; }
+      #measurementMap .option-meta-row strong { color: #6d28d9; }
+      #measurementMap .option-meta-row em { color: #047857; background: #ecfdf5; border-radius: 999px; padding: 3px 8px; font-style: normal; }
+
+      #measurementMap .option-metric-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      #measurementMap .option-source-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      #measurementMap .option-field {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      #measurementMap .option-field > span,
+      #measurementMap .option-score-box > span {
+        color: #64748b;
+        font-size: 0.68rem;
+        font-weight: 950;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      #measurementMap .device-option-card input,
+      #measurementMap .device-option-card textarea,
       #measurementMap .device-option-form input,
       #measurementMap .device-option-form textarea {
         min-width: 0;
         width: 100%;
         border: 1px solid #dbe5f3;
-        border-radius: 9px;
-        padding: 7px 8px;
-        font: inherit;
-        font-size: 0.83rem;
-        background: #ffffff;
-      }
-      #measurementMap .device-option-row .option-notes {
-        grid-column: 1 / -1;
-        min-height: 46px;
-      }
-      #measurementMap .option-actions {
-        display: flex;
-        gap: 5px;
-      }
-      #measurementMap .select-device-option-btn,
-      #measurementMap .delete-device-option-btn {
-        border: 1px solid #dbe5f3;
         border-radius: 10px;
-        padding: 7px 8px;
+        padding: 8px 9px;
         font: inherit;
-        font-size: 0.8rem;
-        font-weight: 850;
+        font-size: 0.84rem;
+        background: #ffffff;
+        box-sizing: border-box;
+      }
+
+      #measurementMap .option-score-box {
+        display: grid;
+        gap: 4px;
+        align-content: end;
+        border: 1px solid #e9d5ff;
+        border-radius: 11px;
+        background: #faf5ff;
+        padding: 7px 9px;
+      }
+
+      #measurementMap .option-score-box strong { color: #6d28d9; font-size: 1rem; }
+
+      #measurementMap .option-actions,
+      #measurementMap .option-link-actions {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      #measurementMap .select-device-option-btn,
+      #measurementMap .delete-device-option-btn,
+      #measurementMap .option-link-actions a,
+      #measurementMap .option-link-actions button {
+        border: 1px solid #dbe5f3;
+        border-radius: 999px;
+        padding: 7px 10px;
+        font: inherit;
+        font-size: 0.78rem;
+        font-weight: 900;
         background: #ffffff;
         color: #334155;
+        text-decoration: none;
+        white-space: nowrap;
+        cursor: pointer;
       }
-      #measurementMap .select-device-option-btn.selected {
-        background: #2563eb;
-        border-color: #2563eb;
-        color: #ffffff;
-      }
-      #measurementMap .delete-device-option-btn {
-        color: #b91c1c;
-      }
+
+      #measurementMap .select-device-option-btn.selected { background: #2563eb; border-color: #2563eb; color: #ffffff; }
+      #measurementMap .delete-device-option-btn { color: #b91c1c; }
+      #measurementMap .option-link-actions a { color: #1d4ed8; border-color: #bfdbfe; }
+      #measurementMap .option-link-actions .secondary-link { color: #6d28d9; border-color: #ddd6fe; }
+      #measurementMap .use-option-photo-btn { color: #047857 !important; border-color: #bbf7d0 !important; }
+
+      #measurementMap .option-notes-field textarea { min-height: 54px; }
+
       #measurementMap .device-option-form {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -337,25 +511,24 @@
         border-top: 1px dashed #dbe5f3;
         padding-top: 10px;
       }
-      #measurementMap .device-option-form.hidden {
-        display: none;
+
+      #measurementMap .device-option-form.hidden { display: none; }
+      #measurementMap .device-option-form textarea { grid-column: 1 / -1; min-height: 60px; }
+      #measurementMap .device-options-empty { margin: 8px 0 0; color: #64748b; }
+
+      @media (max-width: 820px) {
+        #measurementMap .option-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        #measurementMap .option-source-grid { grid-template-columns: 1fr; }
       }
-      #measurementMap .device-option-form textarea {
-        grid-column: 1 / -1;
-        min-height: 60px;
-      }
-      #measurementMap .device-options-empty {
-        margin: 8px 0 0;
-        color: #64748b;
-      }
+
       @media (max-width: 700px) {
         #measurementMap .device-options-summary,
-        #measurementMap .device-option-form {
-          grid-template-columns: 1fr;
-        }
-        #measurementMap .device-options-summary {
-          display: grid;
-        }
+        #measurementMap .device-option-form { grid-template-columns: 1fr; }
+        #measurementMap .device-options-summary { display: grid; }
+        #measurementMap .device-option-card-head { grid-template-columns: 72px minmax(0, 1fr); }
+        #measurementMap .option-actions { grid-column: 1 / -1; justify-content: flex-start; }
+        #measurementMap .option-photo-preview { width: 68px; height: 68px; }
+        #measurementMap .option-link-actions { justify-content: flex-start; }
       }
     `;
     document.head.appendChild(style);
@@ -364,11 +537,12 @@
   function init() {
     installStyles();
     installEvents();
-    [0, 300, 900, 1800].forEach((delay) => setTimeout(renderAllOptions, delay));
+    [0, 250, 700, 1400, 2600].forEach((delay) => setTimeout(renderAllOptions, delay));
   }
 
   document.addEventListener("DOMContentLoaded", init);
   window.addEventListener("measurementMapTabsRebuilt", () => setTimeout(renderAllOptions, 50));
   window.addEventListener("measurementMapSeedUpdated", () => setTimeout(renderAllOptions, 80));
+  window.addEventListener("measurementMapDeviceOptionsChanged", () => setTimeout(renderAllOptions, 80));
   init();
 })();
