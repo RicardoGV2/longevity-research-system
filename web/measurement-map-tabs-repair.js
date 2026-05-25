@@ -4,7 +4,7 @@
     { key: "use", label: "How to use", heading: "How to use it" },
     { key: "limits", label: "Limits", heading: "Comparison / limitations" },
     { key: "frequency", label: "Frequency", heading: "How often" },
-    { key: "analyses", label: "Links", heading: "Linked analyses", html: true },
+    { key: "analyses", label: "Links", heading: "Analyses using this device", html: true },
     { key: "deviceComparison", label: "Research", heading: "Device comparison research", html: true },
     { key: "notes", label: "Notes", heading: "Notes" }
   ];
@@ -58,12 +58,30 @@
     return field?.querySelector("p")?.textContent?.trim() || "";
   }
 
+  function cleanChipHtml(chip) {
+    const id = chip.dataset.analysisId || "";
+    const code = chip.querySelector("span")?.textContent?.trim() || "•";
+    let name = chip.textContent?.trim() || "Analysis";
+    if (name.startsWith(code)) name = name.slice(code.length).trim();
+    return `<button type="button" class="map-analysis-chip clean-analysis-chip" data-analysis-id="${escapeHtml(id)}" title="Open analysis"><span class="chip-code">${escapeHtml(code)}</span><span class="chip-text">${escapeHtml(name)}</span></button>`;
+  }
+
   function linkedAnalysesHtml(card) {
     const box = card.querySelector(".map-analysis-links");
-    const chips = box ? [...box.querySelectorAll(".map-analysis-chip")].map((chip) => chip.outerHTML).join("") : "";
-    if (!chips) return `<p class="link-empty">No linked analysis yet. The link appears automatically when an analysis name/description matches this device or study.</p>`;
-    const count = box.querySelector(".link-box-head small")?.textContent?.trim() || "Linked analyses";
-    return `<div class="link-box-head in-panel"><span>Used by analyses</span><small>${escapeHtml(count)}</small></div><div class="link-chip-row">${chips}</div>`;
+    const sourceChips = box ? [...box.querySelectorAll(".map-analysis-chip")] : [];
+    if (!sourceChips.length) {
+      return `<p class="link-empty">No linked analysis yet. Links appear automatically when an analysis name or description matches this device or study.</p>`;
+    }
+
+    const chips = sourceChips.map(cleanChipHtml).join("");
+    const count = sourceChips.length;
+    return `
+      <div class="linked-analyses-panel-head">
+        <strong>${count} linked</strong>
+        <span>These analyses can use this device/study. Click one to open its analysis card.</span>
+      </div>
+      <div class="link-chip-row clean-link-chip-row">${chips}</div>
+    `;
   }
 
   function researchHtml(card) {
@@ -110,7 +128,8 @@
 
     const existingKeys = [...card.querySelectorAll(".map-info-tab")].map((button) => button.dataset.mapInfoTab).join("|");
     const desiredKeys = TAB_DEFS.map((tab) => tab.key).join("|");
-    if (existingKeys === desiredKeys && card.querySelector(".device-options-editor")) return;
+    const hasCleanLinks = !!card.querySelector(".clean-link-chip-row") || !card.querySelector(".map-analysis-links .map-analysis-chip");
+    if (existingKeys === desiredKeys && card.querySelector(".device-options-editor") && hasCleanLinks) return;
 
     const current = activeKey(card);
     card.querySelectorAll(".map-info-tabs, .map-info-panels").forEach((node) => node.remove());
@@ -157,8 +176,80 @@
         padding-left: 10px;
         padding-right: 10px;
       }
-      #measurementMap .map-info-panel[data-map-info-panel="analyses"] .link-box-head.in-panel {
-        margin-bottom: 9px;
+      #measurementMap .map-info-panel[data-map-info-panel="analyses"] {
+        background: linear-gradient(135deg, #f8fbff 0%, #ffffff 100%);
+        border-color: #dbeafe;
+      }
+      #measurementMap .map-info-panel[data-map-info-panel="analyses"] > span {
+        display: block;
+        margin-bottom: 8px;
+      }
+      #measurementMap .linked-analyses-panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border: 1px solid #dbeafe;
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 9px 10px;
+        margin-bottom: 10px;
+      }
+      #measurementMap .linked-analyses-panel-head strong {
+        color: #1d4ed8;
+        font-size: 0.9rem;
+        white-space: nowrap;
+      }
+      #measurementMap .linked-analyses-panel-head span {
+        color: #64748b;
+        font-size: 0.83rem;
+        text-align: right;
+      }
+      #measurementMap .clean-link-chip-row {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 8px !important;
+        align-items: stretch;
+      }
+      #measurementMap .clean-analysis-chip {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        min-width: 0 !important;
+        width: 100% !important;
+        min-height: 38px !important;
+        border-radius: 14px !important;
+        padding: 7px 10px !important;
+        background: #ffffff !important;
+        border: 1px solid #bfdbfe !important;
+        color: #1d4ed8 !important;
+        text-align: left !important;
+        line-height: 1.15 !important;
+        box-shadow: none !important;
+      }
+      #measurementMap .clean-analysis-chip .chip-code {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex: 0 0 24px !important;
+        width: 24px !important;
+        height: 24px !important;
+        min-width: 24px !important;
+        margin: 0 !important;
+        border-radius: 999px !important;
+        background: #eff6ff !important;
+        color: #1d4ed8 !important;
+        font-size: 0.73rem !important;
+        font-weight: 900 !important;
+      }
+      #measurementMap .clean-analysis-chip .chip-text {
+        display: block !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        font-size: 0.86rem !important;
+        font-weight: 850 !important;
       }
       #measurementMap .map-info-panel[data-map-info-panel="deviceComparison"] {
         background: linear-gradient(135deg, #f5f3ff 0%, #ffffff 100%);
@@ -166,6 +257,18 @@
       }
       #measurementMap .map-info-panel[data-map-info-panel="deviceComparison"] > p {
         margin-bottom: 12px;
+      }
+      @media (max-width: 680px) {
+        #measurementMap .linked-analyses-panel-head {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+        #measurementMap .linked-analyses-panel-head span {
+          text-align: left;
+        }
+        #measurementMap .clean-link-chip-row {
+          grid-template-columns: 1fr;
+        }
       }
     `;
     document.head.appendChild(style);
