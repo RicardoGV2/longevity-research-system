@@ -93,13 +93,54 @@
     return available ? { points: 1, text: "Likely on Amazon.ie" } : { points: 0, text: "Check Amazon.ie" };
   }
 
+  function bestOptionImage(card, name) {
+    const manual = card.querySelector("[data-existing-option-field='imageUrl']")?.value?.trim();
+    return manual || searchProductImage(name);
+  }
+
+  function selectedOptionCardFor(deviceId) {
+    const cards = [...document.querySelectorAll(`#measurementMap .device-option-card[data-device-id='${CSS.escape(deviceId)}']`)];
+    return cards.find((card) => card.querySelector(".select-device-option-btn.selected")) || cards[0] || null;
+  }
+
+  function selectedOptionName(card) {
+    return card?.querySelector("[data-existing-option-field='name']")?.value?.trim() || "Selected device";
+  }
+
+  function syncMainDevicePhoto(deviceId) {
+    if (!deviceId) return;
+    const optionCard = selectedOptionCardFor(deviceId);
+    const deviceCard = document.querySelector(`#measurementMap .map-card[data-map-id='${CSS.escape(deviceId)}']`);
+    const photo = deviceCard?.querySelector(".map-photo");
+    if (!optionCard || !photo) return;
+
+    const name = selectedOptionName(optionCard);
+    const src = bestOptionImage(optionCard, name);
+    if (!src) return;
+
+    const key = `${deviceId}|${name}|${src}`;
+    if (photo.dataset.followSelectedDeviceKey === key && photo.querySelector("img")) return;
+
+    photo.dataset.followSelectedDeviceKey = key;
+    photo.classList.remove("map-starter-photo");
+    photo.classList.add("selected-device-photo");
+    photo.innerHTML = `<img loading="lazy" src="${esc(src)}" alt="${esc(name)}">`;
+
+    const hidden = deviceCard.querySelector("[data-field='photoUrl']");
+    if (hidden) hidden.value = src;
+  }
+
+  function syncAllMainDevicePhotos() {
+    const ids = new Set([...document.querySelectorAll("#measurementMap .device-option-card[data-device-id]")].map((card) => card.dataset.deviceId).filter(Boolean));
+    ids.forEach(syncMainDevicePhoto);
+  }
+
   function applyPhoto(card, name) {
     const photo = card.querySelector(".option-photo-preview");
     if (!photo) return;
-    const manual = card.querySelector("[data-existing-option-field='imageUrl']")?.value?.trim();
-    const src = manual || searchProductImage(name);
+    const src = bestOptionImage(card, name);
     photo.classList.remove("starter-product-image", "source-product-preview", "source-product-image", "photo-error");
-    photo.classList.add("has-image", manual ? "real-product-image" : "search-product-image");
+    photo.classList.add("has-image", card.querySelector("[data-existing-option-field='imageUrl']")?.value?.trim() ? "real-product-image" : "search-product-image");
     photo.innerHTML = `<img loading="lazy" src="${esc(src)}" alt="${esc(name)}">`;
     const img = photo.querySelector("img");
     img?.addEventListener("error", () => {
@@ -141,6 +182,14 @@
       actions.appendChild(amazon);
     }
     amazon.href = amazonSearch(name);
+
+    if (!actions.querySelector(".paste-option-image-modal-btn")) {
+      const paste = document.createElement("button");
+      paste.type = "button";
+      paste.className = "paste-option-image-modal-btn";
+      paste.textContent = "Paste image";
+      actions.appendChild(paste);
+    }
   }
 
   function applyAmazonMetric(card, info) {
@@ -170,6 +219,7 @@
       applyPhoto(card, name);
       applyAmazonMetric(card, amazonInfo(name));
     });
+    syncAllMainDevicePhotos();
   }
 
   function installStyles() {
@@ -178,12 +228,14 @@
     style.id = "measurementMapRealProductMediaStyles";
     style.textContent = `
       #measurementMap .search-product-image img,
-      #measurementMap .real-product-image img { object-fit: contain !important; background:#fff; }
+      #measurementMap .real-product-image img,
+      #measurementMap .selected-device-photo img { object-fit: contain !important; background:#fff; }
       #measurementMap .photo-error { background:#f8fafc!important; border-style:dashed!important; }
       #measurementMap .photo-error span { color:#64748b; font-size:.68rem; font-weight:900; text-align:center; line-height:1.1; padding:4px; }
       #measurementMap .photo-error small { font-size:.6rem; font-weight:800; }
       #measurementMap .amazon-ie-link { color:#b45309!important; border-color:#fcd34d!important; }
       #measurementMap .google-search-link { color:#0f766e!important; border-color:#99f6e4!important; }
+      #measurementMap .paste-option-image-modal-btn { color:#7c3aed!important; border-color:#ddd6fe!important; }
       #measurementMap .amazon-ie-score-box small { color:#64748b; font-size:.66rem; font-weight:800; line-height:1.1; }
     `;
     document.head.appendChild(style);
@@ -205,5 +257,6 @@
   document.addEventListener("DOMContentLoaded", init);
   window.addEventListener("measurementMapTabsRebuilt", () => setTimeout(run, 80));
   window.addEventListener("measurementMapDeviceOptionsChanged", () => setTimeout(run, 80));
+  window.addEventListener("measurementMapOptionPhotoChanged", () => setTimeout(run, 80));
   init();
 })();
