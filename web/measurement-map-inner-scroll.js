@@ -158,8 +158,7 @@
     return {
       Accept: "application/vnd.github+json",
       Authorization: `Bearer ${settings.token}`,
-      "X-GitHub-Api-Version": "2022-11-28",
-      "Cache-Control": "no-cache"
+      "X-GitHub-Api-Version": "2022-11-28"
     };
   }
 
@@ -187,6 +186,10 @@
     };
   }
 
+  function payloadSizeMb(payload) {
+    return (JSON.stringify(payload).length / 1024 / 1024).toFixed(2);
+  }
+
   async function putMap(settings, payload, metadata) {
     const body = {
       message: `Sync measurement map ${payload.updatedAt}`,
@@ -202,6 +205,14 @@
     });
   }
 
+  function explainLoadFailed(error, sizeMb) {
+    const raw = String(error?.message || error || "Load failed");
+    if (/load failed|failed to fetch|networkerror/i.test(raw)) {
+      return `Network request failed before GitHub returned a response. I removed the extra cache header that can break Safari/CORS. If it still happens, the map payload may be too large for mobile upload (${sizeMb} MB), usually because pasted photos are stored as base64. Try on Wi‑Fi or remove/re-paste smaller photos.`;
+    }
+    return raw;
+  }
+
   async function robustPushMap() {
     const settings = readSettings();
     if (!settings.token || !settings.owner || !settings.repo) {
@@ -209,10 +220,12 @@
       return;
     }
 
+    const path = mapSyncPath(settings);
+    const payload = readMapPayload();
+    const sizeMb = payloadSizeMb(payload);
+
     try {
-      const path = mapSyncPath(settings);
-      setMapStatus(`Pushing measurement map to GitHub (${path})...`);
-      const payload = readMapPayload();
+      setMapStatus(`Pushing measurement map to GitHub (${path}, ${sizeMb} MB)...`);
       let metadata = await fetchMapMetadata(settings);
       let response = await putMap(settings, payload, metadata);
 
@@ -233,7 +246,7 @@
       setMapStatus(`Pushed measurement map to ${path}.`);
     } catch (error) {
       console.error(error);
-      setMapStatus(error.message, true);
+      setMapStatus(explainLoadFailed(error, sizeMb), true);
     }
   }
 
