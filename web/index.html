@@ -16,17 +16,12 @@
     </div>
     <div class="header-actions">
       <button id="exportBtn" class="secondary">Export JSON</button>
-      <label class="secondary file-label">
-        Import JSON
-        <input id="importFile" type="file" accept="application/json" hidden />
-      </label>
+      <label class="secondary file-label">Import JSON<input id="importFile" type="file" accept="application/json" hidden /></label>
     </div>
   </header>
 
   <main>
-    <section class="notice">
-      <strong>Storage:</strong> this public website stores data in this browser. For cross-device sync, use a separate private data repo such as <strong>longevity-private-data</strong>.
-    </section>
+    <section class="notice"><strong>Storage:</strong> this public website stores data in this browser. For cross-device sync, use a separate private data repo such as <strong>longevity-private-data</strong>.</section>
 
     <nav class="tabs" aria-label="Main sections">
       <button class="tab active" data-tab="dashboard">Dashboard</button>
@@ -57,14 +52,8 @@
 
     <section id="plan" class="panel">
       <div class="section-head">
-        <div>
-          <h2>Plan files</h2>
-          <p>Edit the plan in Markdown. Save locally first, then push/pull with GitHub Sync from the Data & Sync tab.</p>
-        </div>
-        <div class="inline-actions">
-          <button id="loadSeedPlanBtn" class="secondary-dark" type="button">Restore default plan</button>
-          <button id="savePlanBtn" type="button">Save plan locally</button>
-        </div>
+        <div><h2>Plan files</h2><p>Edit the plan in Markdown. Save locally first, then push/pull with GitHub Sync from the Data & Sync tab.</p></div>
+        <div class="inline-actions"><button id="loadSeedPlanBtn" class="secondary-dark" type="button">Restore default plan</button><button id="savePlanBtn" type="button">Save plan locally</button></div>
       </div>
       <label class="editor-label">Current plan Markdown</label>
       <textarea id="planEditor" class="plan-editor" spellcheck="false"></textarea>
@@ -73,49 +62,22 @@
     </section>
 
     <section id="analyses" class="panel">
-      <div class="section-head">
-        <div>
-          <h2>Analyses to track</h2>
-          <p>The analysis categories derived from §4 of the plan, with status, priority, target date and per-analysis result history.</p>
-        </div>
-      </div>
-
+      <div class="section-head"><div><h2>Analyses to track</h2><p>The analysis categories derived from §4 of the plan, with status, priority, target date and per-analysis result history.</p></div></div>
       <div class="analyses-summary" id="analysesSummary">
         <article class="summary-tile pending"><span>Pending</span><strong id="sumPending">0</strong></article>
         <article class="summary-tile in-progress"><span>In progress</span><strong id="sumInProgress">0</strong></article>
         <article class="summary-tile done"><span>Done</span><strong id="sumDone">0</strong></article>
         <article class="summary-tile discarded"><span>Discarded</span><strong id="sumDiscarded">0</strong></article>
       </div>
-      <div class="progress-row">
-        <div class="progress-track"><div id="analysesProgressBar" class="progress-bar"></div></div>
-        <span id="analysesProgressLabel" class="progress-label">0% (0 / 0)</span>
-      </div>
-
+      <div class="progress-row"><div class="progress-track"><div id="analysesProgressBar" class="progress-bar"></div></div><span id="analysesProgressLabel" class="progress-label">0% (0 / 0)</span></div>
       <div class="analyses-filters">
         <label class="filter-search"><span>Search</span><input id="analysisSearch" type="search" placeholder="Search analysis or note..." /></label>
         <label><span>Category</span><select id="filterCategory"><option value="all">All</option></select></label>
-        <label><span>Status</span><select id="filterStatus">
-          <option value="all">All</option>
-          <option value="pending">Pending</option>
-          <option value="in_progress">In progress</option>
-          <option value="done">Done</option>
-          <option value="discarded">Discarded</option>
-        </select></label>
-        <label><span>Priority</span><select id="filterPriority">
-          <option value="all">All</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-          <option value="none">No priority</option>
-        </select></label>
+        <label><span>Status</span><select id="filterStatus"><option value="all">All</option><option value="pending">Pending</option><option value="in_progress">In progress</option><option value="done">Done</option><option value="discarded">Discarded</option></select></label>
+        <label><span>Priority</span><select id="filterPriority"><option value="all">All</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option><option value="none">No priority</option></select></label>
       </div>
-
       <div id="planSyncSuggestion" class="plan-sync-suggestion hidden"></div>
-
-      <div id="analysesEmpty" class="analyses-empty hidden">
-        <p>No categories yet.</p>
-      </div>
-
+      <div id="analysesEmpty" class="analyses-empty hidden"><p>No categories yet.</p></div>
       <div id="analysesCategories" class="analyses-grid"></div>
     </section>
 
@@ -130,9 +92,7 @@
         <label>Stress 1-10 <input name="stress" type="number" min="1" max="10" /></label>
         <label>Steps <input name="steps" type="number" inputmode="numeric" /></label>
         <label>Max pain 0-10 <input name="pain" type="number" min="0" max="10" /></label>
-        <label>Physical load
-          <select name="physicalLoad"><option value="none">None</option><option value="strength">Strength</option><option value="zone2">Cardio zone 2</option><option value="hiit">HIIT</option><option value="walking">Walking</option><option value="mobility">Mobility</option><option value="sport">Sport</option><option value="work_physical">Physical work</option><option value="other">Other</option></select>
-        </label>
+        <label>Physical load <select name="physicalLoad"><option value="none">None</option><option value="strength">Strength</option><option value="zone2">Cardio zone 2</option><option value="hiit">HIIT</option><option value="walking">Walking</option><option value="mobility">Mobility</option><option value="sport">Sport</option><option value="work_physical">Physical work</option><option value="other">Other</option></select></label>
         <label class="full">Notes <textarea name="notes" rows="3"></textarea></label>
         <button type="submit">Save daily log</button>
       </form>
@@ -141,13 +101,9 @@
     <section id="food" class="panel">
       <h2>7-day food log</h2>
       <form id="foodForm" class="form-grid">
-        <label>Day
-          <select name="day" required><option value="day_1">Day 1</option><option value="day_2">Day 2</option><option value="day_3">Day 3</option><option value="day_4">Day 4</option><option value="day_5">Day 5</option><option value="day_6">Day 6</option><option value="day_7">Day 7</option></select>
-        </label>
+        <label>Day <select name="day" required><option value="day_1">Day 1</option><option value="day_2">Day 2</option><option value="day_3">Day 3</option><option value="day_4">Day 4</option><option value="day_5">Day 5</option><option value="day_6">Day 6</option><option value="day_7">Day 7</option></select></label>
         <label>Time <input name="time" type="time" /></label>
-        <label>Place
-          <select name="place"><option value="home">Home</option><option value="work">Work/office</option><option value="restaurant">Restaurant</option><option value="delivery">Delivery/takeaway</option><option value="social">Social/family/friends</option><option value="street">Transport/street</option><option value="other">Other</option></select>
-        </label>
+        <label>Place <select name="place"><option value="home">Home</option><option value="work">Work/office</option><option value="restaurant">Restaurant</option><option value="delivery">Delivery/takeaway</option><option value="social">Social/family/friends</option><option value="street">Transport/street</option><option value="other">Other</option></select></label>
         <label class="full">Food or drink <textarea name="description" rows="3" required></textarea></label>
         <label>Approx. quantity <input name="quantity" type="text" /></label>
         <label>Hunger before 1-10 <input name="hungerBefore" type="number" min="1" max="10" /></label>
@@ -162,9 +118,7 @@
       <h2>Measurements</h2>
       <form id="measurementForm" class="form-grid">
         <label>Date <input name="date" type="date" required /></label>
-        <label>Type
-          <select name="type" required><option value="waist_cm">Waist cm</option><option value="hip_cm">Hip cm</option><option value="blood_pressure_systolic">Blood pressure systolic</option><option value="blood_pressure_diastolic">Blood pressure diastolic</option><option value="resting_hr">Resting heart rate</option><option value="spo2">SpO₂</option><option value="glucose">Glucose</option><option value="other">Other</option></select>
-        </label>
+        <label>Type <select name="type" required><option value="waist_cm">Waist cm</option><option value="hip_cm">Hip cm</option><option value="blood_pressure_systolic">Blood pressure systolic</option><option value="blood_pressure_diastolic">Blood pressure diastolic</option><option value="resting_hr">Resting heart rate</option><option value="spo2">SpO₂</option><option value="glucose">Glucose</option><option value="other">Other</option></select></label>
         <label>Value <input name="value" type="number" inputmode="decimal" step="0.01" required /></label>
         <label>Unit <input name="unit" type="text" placeholder="cm, mmHg, bpm, %, mmol/L" /></label>
         <label class="full">Notes <textarea name="notes" rows="2"></textarea></label>
@@ -176,9 +130,7 @@
       <h2>Recipe experiment</h2>
       <form id="recipeForm" class="form-grid">
         <label>Recipe name <input name="name" type="text" required /></label>
-        <label>Expected function
-          <select name="function"><option value="stable_energy">Stable energy</option><option value="satiety">Satiety</option><option value="recovery">Recovery</option><option value="glucose_control">Glucose control</option><option value="light_dinner">Light dinner</option><option value="pre_workout">Pre-workout</option><option value="post_workout">Post-workout</option><option value="digestive_health">Digestive health</option><option value="craving_reduction">Craving reduction</option><option value="other">Other</option></select>
-        </label>
+        <label>Expected function <select name="function"><option value="stable_energy">Stable energy</option><option value="satiety">Satiety</option><option value="recovery">Recovery</option><option value="glucose_control">Glucose control</option><option value="light_dinner">Light dinner</option><option value="pre_workout">Pre-workout</option><option value="post_workout">Post-workout</option><option value="digestive_health">Digestive health</option><option value="craving_reduction">Craving reduction</option><option value="other">Other</option></select></label>
         <label class="full">Ingredients <textarea name="ingredients" rows="3"></textarea></label>
         <label>Protein g <input name="protein" type="number" step="0.1" /></label>
         <label>Carbs g <input name="carbs" type="number" step="0.1" /></label>
@@ -206,9 +158,7 @@
         <div class="inline-actions sync-actions"><button id="pullGithubBtn" class="secondary-dark" type="button">Pull from GitHub</button><button id="pushGithubBtn" type="button">Push to GitHub</button></div>
         <p id="syncStatus" class="sync-status">Not synced yet.</p>
       </section>
-      <h3>Raw local data</h3>
-      <p>This is the raw local data currently stored in this browser.</p>
-      <pre id="rawData"></pre>
+      <h3>Raw local data</h3><p>This is the raw local data currently stored in this browser.</p><pre id="rawData"></pre>
     </section>
   </main>
 
@@ -231,18 +181,19 @@
   <script src="plan-toc-follow.js?v=6"></script>
   <script src="plan-floating-controls.js?v=1"></script>
   <script src="plan-search.js?v=1"></script>
-  <script src="measurement-map.js?v=2"></script>
-  <script src="measurement-map-device-seed-v2.js?v=2"></script>
-  <script src="measurement-map-starter-photos.js?v=3"></script>
-  <script src="measurement-map-analysis-links.js?v=3"></script>
-  <script src="measurement-map-extra-device-links.js?v=2"></script>
-  <script src="measurement-map-card-ui.js?v=3"></script>
-  <script src="measurement-map-device-options.js?v=3"></script>
-  <script src="measurement-map-device-options-seed.js?v=2"></script>
-  <script src="measurement-map-image-paste.js?v=2"></script>
-  <script src="measurement-map-inner-scroll.js?v=2"></script>
-  <script src="measurement-map-interaction-fixes.js?v=3"></script>
-  <script src="tabs-mouse-scroll.js?v=2"></script>
+  <script src="measurement-map.js?v=3"></script>
+  <script src="measurement-map-device-seed-v2.js?v=3"></script>
+  <script src="measurement-map-starter-photos.js?v=4"></script>
+  <script src="measurement-map-analysis-links.js?v=4"></script>
+  <script src="measurement-map-extra-device-links.js?v=3"></script>
+  <script src="measurement-map-card-ui.js?v=4"></script>
+  <script src="measurement-map-device-options.js?v=4"></script>
+  <script src="measurement-map-device-options-seed.js?v=3"></script>
+  <script src="measurement-map-force-tabs.js?v=1"></script>
+  <script src="measurement-map-image-paste.js?v=3"></script>
+  <script src="measurement-map-inner-scroll.js?v=3"></script>
+  <script src="measurement-map-interaction-fixes.js?v=4"></script>
+  <script src="tabs-mouse-scroll.js?v=3"></script>
   <script src="food-log-v2.js?v=1"></script>
   <script src="backup-manager.js?v=1"></script>
 </body>
