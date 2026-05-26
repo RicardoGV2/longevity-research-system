@@ -8,8 +8,6 @@
         </div>
         <div class="inline-actions">
           <button id="addMapItemBtn" type="button">+ Add item</button>
-          <button id="pullMapBtn" class="secondary-dark" type="button">Pull map</button>
-          <button id="pushMapBtn" type="button">Push map</button>
         </div>
       </div>
       <div class="map-tools">
@@ -18,7 +16,7 @@
         <label><span>Priority</span><select id="mapPriority"><option value="all">All</option></select></label>
         <label><span>Status</span><select id="mapStatus"><option value="all">All</option></select></label>
       </div>
-      <p id="measurementMapStatus" class="sync-status">Stored locally. Push/Pull uses the same GitHub settings, saved as <code>measurement-map.json</code>.</p>
+      <p id="measurementMapStatus" class="sync-status">Measurement Map is saved locally and uploaded automatically when GitHub sync settings are available.</p>
       <div id="measurementMapGrid" class="measurement-map-grid"><div class="map-empty">Open this tab to load the measurement catalog.</div></div>`;
   }
 
