@@ -21,76 +21,61 @@
   ];
 
   let installed = false;
-  let hasRenderedOnce = false;
   let mapState = null;
   let filters = { search: "", category: "all", priority: "all", status: "all" };
 
-  function uid() {
-    return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  }
-
-  function escapeHtml(value) {
-    return String(value ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
-
+  function uid() { return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`; }
+  function escapeHtml(value) { return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;"); }
   function loadMap() {
     if (mapState) return mapState;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) mapState = { items: DEFAULT_ITEMS, updatedAt: new Date().toISOString() };
-      else {
-        const parsed = JSON.parse(raw);
-        mapState = { items: mergeDefaults(Array.isArray(parsed.items) ? parsed.items : []), updatedAt: parsed.updatedAt || new Date().toISOString() };
-      }
-    } catch {
-      mapState = { items: DEFAULT_ITEMS, updatedAt: new Date().toISOString() };
-    }
+      mapState = raw ? (() => { const p = JSON.parse(raw); return { items: mergeDefaults(Array.isArray(p.items) ? p.items : []), updatedAt: p.updatedAt || new Date().toISOString() }; })() : { items: DEFAULT_ITEMS, updatedAt: new Date().toISOString() };
+    } catch { mapState = { items: DEFAULT_ITEMS, updatedAt: new Date().toISOString() }; }
     return mapState;
   }
+  function mergeDefaults(items) { const byId = new Map(items.map((item) => [item.id, item])); const merged = DEFAULT_ITEMS.map((seed) => ({ ...seed, ...(byId.get(seed.id) || {}) })); items.forEach((item) => { if (!DEFAULT_ITEMS.some((seed) => seed.id === item.id)) merged.push(item); }); return merged; }
+  function saveMap({ render = true } = {}) { const state = loadMap(); state.updatedAt = new Date().toISOString(); try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (error) { setStatus("Could not save Measurement Map locally. Photos may be too large for this browser storage.", true); console.error(error); } if (render && isMapActive()) renderMap(); }
+  function isMapActive() { return document.getElementById("measurementMap")?.classList.contains("active"); }
 
-  function mergeDefaults(items) {
-    const byId = new Map(items.map((item) => [item.id, item]));
-    const merged = DEFAULT_ITEMS.map((seed) => ({ ...seed, ...(byId.get(seed.id) || {}) }));
-    items.forEach((item) => {
-      if (!DEFAULT_ITEMS.some((seed) => seed.id === item.id)) merged.push(item);
-    });
-    return merged;
-  }
-
-  function saveMap({ render = true } = {}) {
-    const state = loadMap();
-    state.updatedAt = new Date().toISOString();
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch (error) {
-      setStatus("Could not save Measurement Map locally. Photos may be too large for this browser storage.", true);
-      console.error(error);
-    }
-    if (render && isMapActive()) renderMap();
-  }
-
-  function isMapActive() {
-    return document.getElementById("measurementMap")?.classList.contains("active");
+  function pageHtml() {
+    return `
+      <div class="section-head">
+        <div><h2>Ideal map of measurements, tests, devices and studies</h2><p>A working catalog for devices, clinical studies, lab tests and functional measurements. Photos load only when this tab is opened.</p></div>
+        <div class="inline-actions"><button id="addMapItemBtn" type="button">+ Add item</button><button id="pullMapBtn" class="secondary-dark" type="button">Pull map</button><button id="pushMapBtn" type="button">Push map</button></div>
+      </div>
+      <div class="map-tools">
+        <label><span>Search</span><input id="mapSearch" type="search" placeholder="Search device, test, instruction..." /></label>
+        <label><span>Category</span><select id="mapCategory"><option value="all">All</option></select></label>
+        <label><span>Priority</span><select id="mapPriority"><option value="all">All</option></select></label>
+        <label><span>Status</span><select id="mapStatus"><option value="all">All</option></select></label>
+      </div>
+      <p id="measurementMapStatus" class="sync-status">Stored locally. Push/Pull uses the same GitHub settings, saved as <code>measurement-map.json</code>.</p>
+      <div id="measurementMapGrid" class="measurement-map-grid"><div class="map-empty">Open this tab to load the measurement catalog.</div></div>`;
   }
 
   function ensurePage() {
+    const tabs = document.querySelector(".tabs");
     let tab = document.querySelector(".tab[data-tab='measurementMap']");
-    if (!tab) {
-      const tabs = document.querySelector(".tabs");
+    if (!tab && tabs) {
       const ref = document.querySelector(".tab[data-tab='measurements']");
       tab = document.createElement("button");
       tab.className = "tab";
       tab.dataset.tab = "measurementMap";
       tab.textContent = "Measurement Map";
-      tabs?.insertBefore(tab, ref || null);
+      tabs.insertBefore(tab, ref || null);
     }
-
-    if (!tab.dataset.mapListener) {
+    if (!document.getElementById("measurementMap")) {
+      const section = document.createElement("section");
+      section.id = "measurementMap";
+      section.className = "panel";
+      section.innerHTML = pageHtml();
+      const measurements = document.getElementById("measurements");
+      measurements?.parentElement?.insertBefore(section, measurements);
+    } else if (!document.getElementById("measurementMapGrid")) {
+      document.getElementById("measurementMap").innerHTML = pageHtml();
+    }
+    if (tab && !tab.dataset.mapListener) {
       tab.dataset.mapListener = "1";
       tab.addEventListener("click", () => {
         document.querySelectorAll(".tab").forEach((b) => b.classList.remove("active"));
@@ -99,35 +84,6 @@
         document.getElementById("measurementMap")?.classList.add("active");
         renderMap();
       });
-    }
-
-    if (!document.getElementById("measurementMap")) {
-      const section = document.createElement("section");
-      section.id = "measurementMap";
-      section.className = "panel";
-      section.innerHTML = `
-        <div class="section-head">
-          <div>
-            <h2>Ideal map of measurements, tests, devices and studies</h2>
-            <p>A working catalog for devices, clinical studies, lab tests and functional measurements. Photos load only when this tab is opened.</p>
-          </div>
-          <div class="inline-actions">
-            <button id="addMapItemBtn" type="button">+ Add item</button>
-            <button id="pullMapBtn" class="secondary-dark" type="button">Pull map</button>
-            <button id="pushMapBtn" type="button">Push map</button>
-          </div>
-        </div>
-        <div class="map-tools">
-          <label><span>Search</span><input id="mapSearch" type="search" placeholder="Search device, test, instruction..." /></label>
-          <label><span>Category</span><select id="mapCategory"><option value="all">All</option></select></label>
-          <label><span>Priority</span><select id="mapPriority"><option value="all">All</option></select></label>
-          <label><span>Status</span><select id="mapStatus"><option value="all">All</option></select></label>
-        </div>
-        <p id="measurementMapStatus" class="sync-status">Stored locally. Push/Pull uses the same GitHub settings, saved as <code>measurement-map.json</code>.</p>
-        <div id="measurementMapGrid" class="measurement-map-grid"><div class="map-empty">Open this tab to load the measurement catalog.</div></div>
-      `;
-      const measurements = document.getElementById("measurements");
-      measurements?.parentElement?.insertBefore(section, measurements);
     }
   }
 
@@ -161,217 +117,26 @@
     `;
     document.head.appendChild(style);
   }
-
-  function uniqueValues(field) {
-    return [...new Set(loadMap().items.map((i) => i[field] || "Unspecified"))].sort();
-  }
-
-  function populateFilters() {
-    const cat = document.getElementById("mapCategory");
-    const pri = document.getElementById("mapPriority");
-    const stat = document.getElementById("mapStatus");
-    if (cat) cat.innerHTML = `<option value="all">All</option>${uniqueValues("category").map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("")}`;
-    if (pri) pri.innerHTML = `<option value="all">All</option>${uniqueValues("priority").map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("")}`;
-    if (stat) stat.innerHTML = `<option value="all">All</option>${uniqueValues("status").map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("")}`;
-    if (cat) cat.value = filters.category;
-    if (pri) pri.value = filters.priority;
-    if (stat) stat.value = filters.status;
-  }
-
-  function filteredItems() {
-    const q = filters.search.toLowerCase();
-    return loadMap().items.filter((item) => {
-      if (filters.category !== "all" && item.category !== filters.category) return false;
-      if (filters.priority !== "all" && item.priority !== filters.priority) return false;
-      if (filters.status !== "all" && item.status !== filters.status) return false;
-      if (q) {
-        const hay = `${item.name} ${item.category} ${item.type} ${item.priority} ${item.status} ${item.measures} ${item.use} ${item.comparison} ${item.frequency} ${item.notes}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-  }
-
-  function renderMap() {
-    ensurePage();
-    ensureStyles();
-    populateFilters();
-    hasRenderedOnce = true;
-    const grid = document.getElementById("measurementMapGrid");
-    if (!grid) return;
-    const items = filteredItems();
-    grid.innerHTML = items.length ? items.map(renderCard).join("") : `<div class="map-empty">No matching devices, tests or studies.</div>`;
-  }
-
-  function renderCard(item) {
-    const photo = item.photo || item.photoUrl;
-    return `
-      <article class="map-card" data-map-id="${escapeHtml(item.id)}">
-        <div class="map-photo">${photo ? `<img loading="lazy" src="${escapeHtml(photo)}" alt="${escapeHtml(item.name)}">` : `<div>No photo yet<br><small>Add image below</small></div>`}</div>
-        <div class="map-body">
-          <div class="map-title"><h3>${escapeHtml(item.name)}</h3><span class="map-chip">${escapeHtml(item.category)}</span><span class="map-chip">${escapeHtml(item.priority)}</span></div>
-          <div class="map-field"><span>Measures</span><p>${escapeHtml(item.measures)}</p></div>
-          <div class="map-field"><span>How to use</span><p>${escapeHtml(item.use)}</p></div>
-          <div class="map-field"><span>Comparison / notes</span><p>${escapeHtml(item.comparison)}</p></div>
-          <details class="map-edit">
-            <summary>Edit item / photo</summary>
-            <div class="map-edit-grid">
-              <input data-field="name" value="${escapeHtml(item.name)}" placeholder="Name">
-              <input data-field="category" value="${escapeHtml(item.category)}" placeholder="Category">
-              <input data-field="type" value="${escapeHtml(item.type)}" placeholder="Type">
-              <input data-field="priority" value="${escapeHtml(item.priority)}" placeholder="Priority">
-              <input data-field="status" value="${escapeHtml(item.status)}" placeholder="Status">
-              <input data-field="frequency" value="${escapeHtml(item.frequency)}" placeholder="Frequency">
-            </div>
-            <textarea data-field="measures" placeholder="What it measures">${escapeHtml(item.measures)}</textarea>
-            <textarea data-field="use" placeholder="How to use it">${escapeHtml(item.use)}</textarea>
-            <textarea data-field="comparison" placeholder="Comparisons / limitations">${escapeHtml(item.comparison)}</textarea>
-            <textarea data-field="notes" placeholder="Notes">${escapeHtml(item.notes)}</textarea>
-            <input data-field="photoUrl" value="${escapeHtml(item.photoUrl || "")}" placeholder="Photo URL (optional)">
-            <input type="file" accept="image/*" data-action="photo">
-            <div class="map-actions"><button type="button" class="secondary-dark" data-action="clear-photo">Clear photo</button><button type="button" class="danger" data-action="delete">Delete</button></div>
-          </details>
-        </div>
-      </article>`;
-  }
-
-  function itemFromCard(card) {
-    const id = card?.dataset?.mapId;
-    return loadMap().items.find((item) => item.id === id);
-  }
-
-  async function handlePhotoInput(input, item) {
-    const file = input.files?.[0];
-    if (!file || !item || !file.type.startsWith("image/")) return;
-    const dataUrl = await resizeImage(file, 700, 0.72);
-    item.photo = dataUrl;
-    item.photoUrl = "";
-    saveMap();
-  }
-
-  function resizeImage(file, maxSize, quality) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onerror = reject;
-      reader.onload = () => {
-        const img = new Image();
-        img.onerror = reject;
-        img.onload = () => {
-          const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
-          const canvas = document.createElement("canvas");
-          canvas.width = Math.max(1, Math.round(img.width * scale));
-          canvas.height = Math.max(1, Math.round(img.height * scale));
-          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL("image/jpeg", quality));
-        };
-        img.src = reader.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-
-  function addItem() {
-    loadMap().items.unshift({ id: uid(), category: "Custom", name: "New measurement / device", type: "Device / Study", priority: "Unspecified", status: "Research later", measures: "", use: "", comparison: "", frequency: "", notes: "", photo: "", photoUrl: "" });
-    saveMap();
-  }
-
-  function setStatus(message, error = false) {
-    const el = document.getElementById("measurementMapStatus");
-    if (!el) return;
-    el.textContent = message;
-    el.style.color = error ? "#b91c1c" : "#647084";
-  }
-
-  function syncSettings() {
-    try { return JSON.parse(localStorage.getItem(SYNC_SETTINGS_KEY) || "{}"); } catch { return {}; }
-  }
-  function mapSyncPath(settings) {
-    const base = settings.path || "sync/personal-sync.json";
-    return base.includes("/") ? base.replace(/[^/]+$/, "measurement-map.json") : "measurement-map.json";
-  }
-  function githubFileUrl(settings) {
-    const path = mapSyncPath(settings).split("/").map(encodeURIComponent).join("/");
-    return `https://api.github.com/repos/${encodeURIComponent(settings.owner)}/${encodeURIComponent(settings.repo)}/contents/${path}`;
-  }
-  function authHeaders(settings) {
-    return { Accept: "application/vnd.github+json", Authorization: `Bearer ${settings.token}`, "X-GitHub-Api-Version": "2022-11-28" };
-  }
+  function uniqueValues(field) { return [...new Set(loadMap().items.map((i) => i[field] || "Unspecified"))].sort(); }
+  function populateFilters() { const cat = document.getElementById("mapCategory"); const pri = document.getElementById("mapPriority"); const stat = document.getElementById("mapStatus"); if (cat) cat.innerHTML = `<option value="all">All</option>${uniqueValues("category").map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("")}`; if (pri) pri.innerHTML = `<option value="all">All</option>${uniqueValues("priority").map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("")}`; if (stat) stat.innerHTML = `<option value="all">All</option>${uniqueValues("status").map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("")}`; if (cat) cat.value = filters.category; if (pri) pri.value = filters.priority; if (stat) stat.value = filters.status; }
+  function filteredItems() { const q = filters.search.toLowerCase(); return loadMap().items.filter((item) => { if (filters.category !== "all" && item.category !== filters.category) return false; if (filters.priority !== "all" && item.priority !== filters.priority) return false; if (filters.status !== "all" && item.status !== filters.status) return false; if (q) { const hay = `${item.name} ${item.category} ${item.type} ${item.priority} ${item.status} ${item.measures} ${item.use} ${item.comparison} ${item.frequency} ${item.notes}`.toLowerCase(); if (!hay.includes(q)) return false; } return true; }); }
+  function renderMap() { ensurePage(); ensureStyles(); populateFilters(); const grid = document.getElementById("measurementMapGrid"); if (!grid) return; const items = filteredItems(); grid.innerHTML = items.length ? items.map(renderCard).join("") : `<div class="map-empty">No matching devices, tests or studies.</div>`; }
+  function renderCard(item) { const photo = item.photo || item.photoUrl; return `<article class="map-card" data-map-id="${escapeHtml(item.id)}"><div class="map-photo">${photo ? `<img loading="lazy" src="${escapeHtml(photo)}" alt="${escapeHtml(item.name)}">` : `<div>No photo yet<br><small>Add image below</small></div>`}</div><div class="map-body"><div class="map-title"><h3>${escapeHtml(item.name)}</h3><span class="map-chip">${escapeHtml(item.category)}</span><span class="map-chip">${escapeHtml(item.priority)}</span></div><div class="map-field"><span>Measures</span><p>${escapeHtml(item.measures)}</p></div><div class="map-field"><span>How to use</span><p>${escapeHtml(item.use)}</p></div><div class="map-field"><span>Comparison / notes</span><p>${escapeHtml(item.comparison)}</p></div><details class="map-edit"><summary>Edit item / photo</summary><div class="map-edit-grid"><input data-field="name" value="${escapeHtml(item.name)}" placeholder="Name"><input data-field="category" value="${escapeHtml(item.category)}" placeholder="Category"><input data-field="type" value="${escapeHtml(item.type)}" placeholder="Type"><input data-field="priority" value="${escapeHtml(item.priority)}" placeholder="Priority"><input data-field="status" value="${escapeHtml(item.status)}" placeholder="Status"><input data-field="frequency" value="${escapeHtml(item.frequency)}" placeholder="Frequency"></div><textarea data-field="measures" placeholder="What it measures">${escapeHtml(item.measures)}</textarea><textarea data-field="use" placeholder="How to use it">${escapeHtml(item.use)}</textarea><textarea data-field="comparison" placeholder="Comparisons / limitations">${escapeHtml(item.comparison)}</textarea><textarea data-field="notes" placeholder="Notes">${escapeHtml(item.notes)}</textarea><input data-field="photoUrl" value="${escapeHtml(item.photoUrl || "")}" placeholder="Photo URL (optional)"><input type="file" accept="image/*" data-action="photo"><div class="map-actions"><button type="button" class="secondary-dark" data-action="clear-photo">Clear photo</button><button type="button" class="danger" data-action="delete">Delete</button></div></details></div></article>`; }
+  function itemFromCard(card) { const id = card?.dataset?.mapId; return loadMap().items.find((item) => item.id === id); }
+  async function handlePhotoInput(input, item) { const file = input.files?.[0]; if (!file || !item || !file.type.startsWith("image/")) return; const dataUrl = await resizeImage(file, 700, 0.72); item.photo = dataUrl; item.photoUrl = ""; saveMap(); }
+  function resizeImage(file, maxSize, quality) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onerror = reject; reader.onload = () => { const img = new Image(); img.onerror = reject; img.onload = () => { const scale = Math.min(1, maxSize / Math.max(img.width, img.height)); const canvas = document.createElement("canvas"); canvas.width = Math.max(1, Math.round(img.width * scale)); canvas.height = Math.max(1, Math.round(img.height * scale)); canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height); resolve(canvas.toDataURL("image/jpeg", quality)); }; img.src = reader.result; }; reader.readAsDataURL(file); }); }
+  function addItem() { loadMap().items.unshift({ id: uid(), category: "Custom", name: "New measurement / device", type: "Device / Study", priority: "Unspecified", status: "Research later", measures: "", use: "", comparison: "", frequency: "", notes: "", photo: "", photoUrl: "" }); saveMap(); }
+  function setStatus(message, error = false) { const el = document.getElementById("measurementMapStatus"); if (!el) return; el.textContent = message; el.style.color = error ? "#b91c1c" : "#647084"; }
+  function syncSettings() { try { return JSON.parse(localStorage.getItem(SYNC_SETTINGS_KEY) || "{}"); } catch { return {}; } }
+  function mapSyncPath(settings) { const base = settings.path || "sync/personal-sync.json"; return base.includes("/") ? base.replace(/[^/]+$/, "measurement-map.json") : "measurement-map.json"; }
+  function githubFileUrl(settings) { const path = mapSyncPath(settings).split("/").map(encodeURIComponent).join("/"); return `https://api.github.com/repos/${encodeURIComponent(settings.owner)}/${encodeURIComponent(settings.repo)}/contents/${path}`; }
+  function authHeaders(settings) { return { Accept: "application/vnd.github+json", Authorization: `Bearer ${settings.token}`, "X-GitHub-Api-Version": "2022-11-28" }; }
   function encodeBase64Unicode(str) { return btoa(unescape(encodeURIComponent(str))); }
   function decodeBase64Unicode(str) { return decodeURIComponent(escape(atob(str.replace(/\n/g, "")))); }
-  async function getGitHubFile(settings) {
-    const response = await fetch(`${githubFileUrl(settings)}?ref=${encodeURIComponent(settings.branch || "main")}`, { headers: authHeaders(settings) });
-    if (response.status === 404) return null;
-    if (!response.ok) throw new Error(`GitHub fetch failed: ${response.status}`);
-    return response.json();
-  }
-  async function pullMap() {
-    const settings = syncSettings();
-    if (!settings.token || !settings.owner || !settings.repo) return setStatus("Missing GitHub sync settings in Data & Sync.", true);
-    try {
-      setStatus("Pulling measurement map from GitHub...");
-      const metadata = await getGitHubFile(settings);
-      if (!metadata) return setStatus(`No measurement map file found yet at ${mapSyncPath(settings)}. Push once first.`, true);
-      const payload = JSON.parse(decodeBase64Unicode(metadata.content));
-      mapState = { items: mergeDefaults(payload.items || []), updatedAt: payload.updatedAt || new Date().toISOString() };
-      saveMap();
-      setStatus(`Pulled measurement map. Remote update: ${payload.updatedAt || "unknown"}`);
-    } catch (error) { console.error(error); setStatus(error.message, true); }
-  }
-  async function pushMap() {
-    const settings = syncSettings();
-    if (!settings.token || !settings.owner || !settings.repo) return setStatus("Missing GitHub sync settings in Data & Sync.", true);
-    try {
-      setStatus("Pushing measurement map to GitHub...");
-      const metadata = await getGitHubFile(settings);
-      const payload = { schemaVersion: "measurement-map.v0.1", updatedAt: new Date().toISOString(), items: loadMap().items };
-      const body = { message: `Sync measurement map ${payload.updatedAt}`, content: encodeBase64Unicode(JSON.stringify(payload, null, 2)), branch: settings.branch || "main" };
-      if (metadata?.sha) body.sha = metadata.sha;
-      const response = await fetch(githubFileUrl(settings), { method: "PUT", headers: { ...authHeaders(settings), "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      if (!response.ok) throw new Error(`GitHub push failed: ${response.status} ${await response.text()}`);
-      setStatus(`Pushed measurement map to ${mapSyncPath(settings)}.`);
-    } catch (error) { console.error(error); setStatus(error.message, true); }
-  }
-
-  function setupEvents() {
-    if (installed) return;
-    installed = true;
-    document.addEventListener("input", (event) => {
-      const target = event.target;
-      if (target?.id === "mapSearch") { filters.search = target.value || ""; renderMap(); return; }
-      const card = target?.closest?.(".map-card");
-      const item = itemFromCard(card);
-      if (!item || !target.dataset.field) return;
-      item[target.dataset.field] = target.value;
-      if (target.dataset.field === "photoUrl" && target.value.trim()) item.photo = "";
-      clearTimeout(target._mapTimer);
-      target._mapTimer = setTimeout(() => saveMap({ render: isMapActive() }), 300);
-    });
-    document.addEventListener("change", (event) => {
-      const target = event.target;
-      if (target?.id === "mapCategory") { filters.category = target.value; renderMap(); return; }
-      if (target?.id === "mapPriority") { filters.priority = target.value; renderMap(); return; }
-      if (target?.id === "mapStatus") { filters.status = target.value; renderMap(); return; }
-      if (target?.dataset?.action === "photo") handlePhotoInput(target, itemFromCard(target.closest(".map-card")));
-    });
-    document.addEventListener("click", (event) => {
-      if (event.target?.id === "addMapItemBtn") addItem();
-      if (event.target?.id === "pullMapBtn") pullMap();
-      if (event.target?.id === "pushMapBtn") pushMap();
-      const action = event.target?.dataset?.action;
-      if (!action) return;
-      const item = itemFromCard(event.target.closest(".map-card"));
-      if (!item) return;
-      if (action === "clear-photo") { item.photo = ""; item.photoUrl = ""; saveMap(); }
-      if (action === "delete") { if (!confirm(`Delete ${item.name}?`)) return; mapState.items = loadMap().items.filter((x) => x.id !== item.id); saveMap(); }
-    });
-  }
-
-  function install() {
-    ensurePage();
-    ensureStyles();
-    setupEvents();
-    if (isMapActive()) renderMap();
-  }
-
-  document.addEventListener("DOMContentLoaded", () => setTimeout(install, 900));
+  async function getGitHubFile(settings) { const response = await fetch(`${githubFileUrl(settings)}?ref=${encodeURIComponent(settings.branch || "main")}`, { headers: authHeaders(settings) }); if (response.status === 404) return null; if (!response.ok) throw new Error(`GitHub fetch failed: ${response.status}`); return response.json(); }
+  async function pullMap() { const settings = syncSettings(); if (!settings.token || !settings.owner || !settings.repo) return setStatus("Missing GitHub sync settings in Data & Sync.", true); try { setStatus("Pulling measurement map from GitHub..."); const metadata = await getGitHubFile(settings); if (!metadata) return setStatus(`No measurement map file found yet at ${mapSyncPath(settings)}. Push once first.`, true); const payload = JSON.parse(decodeBase64Unicode(metadata.content)); mapState = { items: mergeDefaults(payload.items || []), updatedAt: payload.updatedAt || new Date().toISOString() }; saveMap(); setStatus(`Pulled measurement map. Remote update: ${payload.updatedAt || "unknown"}`); } catch (error) { console.error(error); setStatus(error.message, true); } }
+  async function pushMap() { const settings = syncSettings(); if (!settings.token || !settings.owner || !settings.repo) return setStatus("Missing GitHub sync settings in Data & Sync.", true); try { setStatus("Pushing measurement map to GitHub..."); const metadata = await getGitHubFile(settings); const payload = { schemaVersion: "measurement-map.v0.1", updatedAt: new Date().toISOString(), items: loadMap().items }; const body = { message: `Sync measurement map ${payload.updatedAt}`, content: encodeBase64Unicode(JSON.stringify(payload, null, 2)), branch: settings.branch || "main" }; if (metadata?.sha) body.sha = metadata.sha; const response = await fetch(githubFileUrl(settings), { method: "PUT", headers: { ...authHeaders(settings), "Content-Type": "application/json" }, body: JSON.stringify(body) }); if (!response.ok) throw new Error(`GitHub push failed: ${response.status} ${await response.text()}`); setStatus(`Pushed measurement map to ${mapSyncPath(settings)}.`); } catch (error) { console.error(error); setStatus(error.message, true); } }
+  function setupEvents() { if (installed) return; installed = true; document.addEventListener("input", (event) => { const target = event.target; if (target?.id === "mapSearch") { filters.search = target.value || ""; renderMap(); return; } const card = target?.closest?.(".map-card"); const item = itemFromCard(card); if (!item || !target.dataset.field) return; item[target.dataset.field] = target.value; if (target.dataset.field === "photoUrl" && target.value.trim()) item.photo = ""; clearTimeout(target._mapTimer); target._mapTimer = setTimeout(() => saveMap({ render: isMapActive() }), 300); }); document.addEventListener("change", (event) => { const target = event.target; if (target?.id === "mapCategory") { filters.category = target.value; renderMap(); return; } if (target?.id === "mapPriority") { filters.priority = target.value; renderMap(); return; } if (target?.id === "mapStatus") { filters.status = target.value; renderMap(); return; } if (target?.dataset?.action === "photo") handlePhotoInput(target, itemFromCard(target.closest(".map-card"))); }); document.addEventListener("click", (event) => { if (event.target?.id === "addMapItemBtn") addItem(); if (event.target?.id === "pullMapBtn") pullMap(); if (event.target?.id === "pushMapBtn") pushMap(); const action = event.target?.dataset?.action; if (!action) return; const item = itemFromCard(event.target.closest(".map-card")); if (!item) return; if (action === "clear-photo") { item.photo = ""; item.photoUrl = ""; saveMap(); } if (action === "delete") { if (!confirm(`Delete ${item.name}?`)) return; mapState.items = loadMap().items.filter((x) => x.id !== item.id); saveMap(); } }); }
+  function install() { ensurePage(); ensureStyles(); setupEvents(); if (isMapActive()) renderMap(); }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", install); else install();
 })();
