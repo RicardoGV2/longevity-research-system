@@ -1,5 +1,11 @@
 (() => {
+  if (window.__measurementMapRenderFixInstalled) return;
+  window.__measurementMapRenderFixInstalled = true;
+
   const MAP_KEY = "longevityResearchSystem.measurementMap.v0.1";
+  const timers = new Set();
+  let enhancementsLoaded = false;
+  let lastBasicRenderSignature = "";
 
   function esc(value) {
     return String(value ?? "")
@@ -19,9 +25,20 @@
     return document.getElementById("measurementMap")?.classList.contains("active");
   }
 
+  function gridIsEnhanced(grid = document.getElementById("measurementMapGrid")) {
+    return Boolean(grid?.querySelector?.(".map-info-tabs, .map-info-panels, .map-info-tab"));
+  }
+
+  function shouldSkipBasicRender(force = false) {
+    const grid = document.getElementById("measurementMapGrid");
+    if (!grid) return true;
+    if (!force && (enhancementsLoaded || gridIsEnhanced(grid))) return true;
+    return false;
+  }
+
   function itemPhoto(item) {
     const src = item.photo || item.photoUrl || "";
-    return src ? `<img loading="lazy" src="${esc(src)}" alt="${esc(item.name)}">` : `<div>No photo yet<br><small>Add image below</small></div>`;
+    return src ? `<img loading="lazy" src="${esc(src)}" alt="${esc(item.name)}">` : `<div>No photo yet<br><small>Loading photo tools...</small></div>`;
   }
 
   function card(item) {
@@ -49,7 +66,8 @@
 
   function renderFromStorage(force = false) {
     const grid = document.getElementById("measurementMapGrid");
-    if (!grid) return false;
+    if (!grid || shouldSkipBasicRender(force)) return Boolean(grid);
+
     const state = readMap();
     const items = Array.isArray(state.items) ? state.items : [];
 
@@ -83,19 +101,35 @@
       return true;
     });
 
+    const signature = `${filtered.map((item) => item.id).join("|")}::${search}::${category}::${priority}::${status}::${items.length}`;
+    if (!force && signature === lastBasicRenderSignature && grid.querySelector(".map-card")) return true;
+    lastBasicRenderSignature = signature;
+
     grid.innerHTML = filtered.length ? filtered.map(card).join("") : `<div class="map-empty">No matching devices, tests or studies.</div>`;
     const statusEl = document.getElementById("measurementMapStatus");
     if (statusEl && /Open this tab|No local Measurement Map|No Measurement Map devices/i.test(statusEl.textContent || "")) {
-      statusEl.textContent = "Measurement Map loaded from local data. GitHub data restores automatically when sync settings are available.";
+      statusEl.textContent = "Measurement Map loaded. Advanced tabs and photos are loading now.";
       statusEl.style.color = "#647084";
     }
     window.dispatchEvent(new CustomEvent("measurementMapBasicRendered"));
     return true;
   }
 
+  function clearScheduledBasicRenders() {
+    timers.forEach((timer) => clearTimeout(timer));
+    timers.clear();
+  }
+
   function scheduleRender() {
+    if (enhancementsLoaded || gridIsEnhanced()) return;
     requestAnimationFrame(() => renderFromStorage(false));
-    [80, 250, 700, 1400, 2800].forEach((delay) => setTimeout(() => renderFromStorage(false), delay));
+    [80, 250, 700, 1400].forEach((delay) => {
+      const timer = setTimeout(() => {
+        timers.delete(timer);
+        renderFromStorage(false);
+      }, delay);
+      timers.add(timer);
+    });
   }
 
   function addTemporaryPullButton() {
@@ -124,17 +158,35 @@
     }
     setStatus("Pulling Measurement Map from GitHub...");
     Promise.resolve(sync.pull({ force: true }))
-      .then(() => setTimeout(() => renderFromStorage(true), 500))
+      .then(() => {
+        if (!enhancementsLoaded && !gridIsEnhanced()) setTimeout(() => renderFromStorage(true), 500);
+        window.dispatchEvent(new CustomEvent("measurementMapDeviceOptionsChanged"));
+      })
       .catch((error) => setStatus(error.message || "Could not pull Measurement Map.", true));
   }
 
   const previousRender = window.renderMeasurementMap;
   window.renderMeasurementMap = function renderMeasurementMapPatched() {
+    if (enhancementsLoaded || gridIsEnhanced()) {
+      if (typeof previousRender === "function") previousRender();
+      return;
+    }
     const rendered = renderFromStorage(true);
     if (!rendered && typeof previousRender === "function") previousRender();
   };
 
+  function onEnhanced() {
+    enhancementsLoaded = true;
+    window.__measurementMapEnhancementsReady = true;
+    clearScheduledBasicRenders();
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("measurementMapTabsRebuilt"));
+      window.dispatchEvent(new CustomEvent("measurementMapDeviceOptionsChanged"));
+    }, 80);
+  }
+
   function init() {
+    window.__measurementMapFastRendererReady = true;
     addTemporaryPullButton();
     if (mapIsActive()) scheduleRender();
     document.addEventListener("click", (event) => {
@@ -149,16 +201,29 @@
       }
     }, true);
     document.addEventListener("input", (event) => {
-      if (["mapSearch"].includes(event.target?.id)) renderFromStorage(true);
+      if (event.target?.id === "mapSearch" && !gridIsEnhanced()) renderFromStorage(true);
     }, true);
     document.addEventListener("change", (event) => {
-      if (["mapCategory", "mapPriority", "mapStatus"].includes(event.target?.id)) renderFromStorage(true);
+      if (["mapCategory", "mapPriority", "mapStatus"].includes(event.target?.id) && !gridIsEnhanced()) renderFromStorage(true);
     }, true);
-    window.addEventListener("measurementMapAutoPulled", () => setTimeout(() => renderFromStorage(true), 100));
-    window.addEventListener("measurementMapLocalChanged", () => setTimeout(() => renderFromStorage(true), 100));
-    window.addEventListener("measurementMapSeedUpdated", () => setTimeout(() => renderFromStorage(true), 100));
-    window.addEventListener("measurementMapEnhancementsLoaded", () => setTimeout(addTemporaryPullButton, 100));
-    [100, 600, 1600, 3500].forEach((delay) => setTimeout(() => { addTemporaryPullButton(); if (mapIsActive()) renderFromStorage(false); }, delay));
+    window.addEventListener("measurementMapAutoPulled", () => {
+      if (!enhancementsLoaded && !gridIsEnhanced()) setTimeout(() => renderFromStorage(true), 100);
+    });
+    window.addEventListener("measurementMapLocalChanged", () => {
+      if (!enhancementsLoaded && !gridIsEnhanced()) setTimeout(() => renderFromStorage(true), 100);
+    });
+    window.addEventListener("measurementMapSeedUpdated", () => {
+      if (!enhancementsLoaded && !gridIsEnhanced()) setTimeout(() => renderFromStorage(true), 100);
+    });
+    window.addEventListener("measurementMapEnhancementsLoaded", onEnhanced);
+    [100, 600, 1600].forEach((delay) => {
+      const timer = setTimeout(() => {
+        timers.delete(timer);
+        addTemporaryPullButton();
+        if (mapIsActive() && !enhancementsLoaded && !gridIsEnhanced()) renderFromStorage(false);
+      }, delay);
+      timers.add(timer);
+    });
   }
 
   document.addEventListener("DOMContentLoaded", init, { once: true });
