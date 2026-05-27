@@ -49,9 +49,20 @@
         <div class="map-field"><span>Measures</span><p>${esc(item.measures)}</p></div>
         <div class="map-field"><span>How to use</span><p>${esc(item.use)}</p></div>
         <div class="map-field"><span>Comparison / notes</span><p>${esc(item.comparison)}</p></div>
-        <input type="hidden" data-field="frequency" value="${esc(item.frequency || "")}">
-        <input type="hidden" data-field="notes" value="${esc(item.notes || "")}">
-        <input type="hidden" data-field="photoUrl" value="${esc(item.photoUrl || "")}">
+        <details class="map-edit" hidden>
+          <summary>Edit details / photo</summary>
+          <input data-field="name" value="${esc(item.name || "")}">
+          <input data-field="category" value="${esc(item.category || "")}">
+          <input data-field="type" value="${esc(item.type || "")}">
+          <input data-field="priority" value="${esc(item.priority || "")}">
+          <input data-field="status" value="${esc(item.status || "")}">
+          <input data-field="frequency" value="${esc(item.frequency || "")}">
+          <textarea data-field="measures">${esc(item.measures || "")}</textarea>
+          <textarea data-field="use">${esc(item.use || "")}</textarea>
+          <textarea data-field="comparison">${esc(item.comparison || "")}</textarea>
+          <textarea data-field="notes">${esc(item.notes || "")}</textarea>
+          <input data-field="photoUrl" value="${esc(item.photoUrl || "")}">
+        </details>
       </div>
     </article>`;
   }
