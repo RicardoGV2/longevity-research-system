@@ -1,4 +1,5 @@
 (() => {
+  const FAST_SCRIPT = "measurement-map-render-fix.js?v=1";
   const SCRIPTS = [
     "measurement-map-device-seed-v2.js?v=4",
     "measurement-map-starter-photos.js?v=5",
@@ -21,6 +22,7 @@
 
   let started = false;
   let loaded = false;
+  let fastLoaded = false;
   const loadedScripts = new Set();
 
   function mapIsActive() {
@@ -53,6 +55,14 @@
     });
   }
 
+  async function loadFastRenderer() {
+    if (fastLoaded) return;
+    fastLoaded = true;
+    await loadScript(FAST_SCRIPT);
+    await tick();
+    window.renderMeasurementMap?.();
+  }
+
   async function loadEnhancements() {
     if (started) return;
     started = true;
@@ -60,10 +70,7 @@
     setStatus("Loading Measurement Map tools...");
 
     try {
-      // Let the base Measurement Map render first so the tab does not look empty or frozen.
-      await tick();
-      window.renderMeasurementMap?.();
-
+      await loadFastRenderer();
       for (const src of SCRIPTS) {
         await loadScript(src);
         await tick();
@@ -72,7 +79,7 @@
 
       loaded = true;
       document.documentElement.classList.remove("measurement-map-enhancing");
-      setStatus("Stored locally. Push/Pull uses the same GitHub settings, saved as measurement-map.json.");
+      setStatus("Measurement Map loaded. GitHub data restores automatically when sync settings are available.");
       window.dispatchEvent(new CustomEvent("measurementMapEnhancementsLoaded"));
     } catch (error) {
       console.error(error);
@@ -83,8 +90,7 @@
 
   function activateMapFast() {
     if (!mapIsActive()) return;
-    // Render the simple map immediately, before loading the enhancement scripts.
-    window.renderMeasurementMap?.();
+    loadFastRenderer();
     if (!loaded) loadEnhancements();
   }
 
